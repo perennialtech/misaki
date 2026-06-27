@@ -22,8 +22,7 @@ from .regular import link1, link2, link4
 from .special import (balb, consonant_ui, jamo, josa_ui, jyeo, modifying_rieul,
                       palatalize, rieulbieub, rieulgiyeok, verb_nieun,
                       vowel_ui, ye)
-from .utils import (annotate, compose, get_rule_id2text, group,
-                    parse_table)
+from .utils import annotate, compose, get_rule_id2text, group, parse_table
 
 
 class G2p(object):
