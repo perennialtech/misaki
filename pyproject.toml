@@ -33,3 +33,12 @@ vi = ["num2words", "spacy", "spacy-curated-transformers", "underthesea"]
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "basedpyright>=1.39.9",
+    "black>=24.8.0",
+    "isort>=5.13.2",
+    "pytest>=8.3.5",
+    "ruff>=0.15.20",
+]
