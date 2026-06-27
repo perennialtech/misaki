@@ -31,7 +31,15 @@ _letter_key_vi = {
 _letter_combine_re = "|".join(_letter_key_vi.keys())
 _quotes_symbol = r"(\"|\')?"
 _space = r"(\s)"
-_letter_re = r"(chữ|chữ cái|kí tự|ký tự)?" + _space + _quotes_symbol + r"(" + _letter_combine_re + r")" + r"(.)?"
+_letter_re = (
+    r"(chữ|chữ cái|kí tự|ký tự)?"
+    + _space
+    + _quotes_symbol
+    + r"("
+    + _letter_combine_re
+    + r")"
+    + r"(.)?"
+)
 
 
 def _expand_letter_vi(match):

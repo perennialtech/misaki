@@ -1,5 +1,5 @@
-import re
 import json
+import re
 from pathlib import Path
 
 _letter_to_arpabet = {
@@ -170,12 +170,16 @@ acronyms_exceptions_vi = {
     "XSMB": "xổ số miền bắc",
     "XSMN": "xổ số miền nam",
     "XSMT": "xổ số miền tây",
-    "sars-cov":"sát cô vi",
-    "covid":"cô vít",
-    "coronavirus": "cô rô na vai rớt"
+    "sars-cov": "sát cô vi",
+    "covid": "cô vít",
+    "coronavirus": "cô rô na vai rớt",
 }
 acronyms_exceptions_vi.update(
-    json.loads(Path(__file__, '..', '..', 'data', 'vi_acronyms.json').resolve().read_text(encoding="utf-8"))
+    json.loads(
+        Path(__file__, "..", "..", "data", "vi_acronyms.json")
+        .resolve()
+        .read_text(encoding="utf-8")
+    )
 )
 
 non_uppercase_exceptions = {

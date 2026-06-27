@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-'''
+"""
 Special rule for processing Hangul
 https://github.com/kyubyong/g2pK
-'''
+"""
 
 import re
 
-from .utils import gloss, get_rule_id2text
+from .utils import get_rule_id2text
 
 rule_id2text = get_rule_id2text()
 
@@ -75,8 +75,9 @@ def jamo(inp, descriptive=False, verbose=False):
     # gloss(verbose, out, inp, rule)
     return out
 
-
     ############################ 어간 받침 ############################
+
+
 def rieulgiyeok(inp, descriptive=False, verbose=False):
     rule = rule_id2text["11.1"]
 
@@ -104,20 +105,20 @@ def verb_nieun(inp, descriptive=False, verbose=False):
     rule = rule_id2text["24"]
     out = inp
 
-    pairs = [ ("([ᆫᆷ])/Pᄀ", r"\1ᄁ"),
-              ("([ᆫᆷ])/Pᄃ", r"\1ᄄ"),
-              ("([ᆫᆷ])/Pᄉ", r"\1ᄊ"),
-              ("([ᆫᆷ])/Pᄌ", r"\1ᄍ"),
-
-              ("ᆬ/Pᄀ", "ᆫᄁ"),
-              ("ᆬ/Pᄃ", "ᆫᄄ"),
-              ("ᆬ/Pᄉ", "ᆫᄊ"),
-              ("ᆬ/Pᄌ", "ᆫᄍ"),
-
-              ("ᆱ/Pᄀ", "ᆷᄁ"),
-              ("ᆱ/Pᄃ", "ᆷᄄ"),
-              ("ᆱ/Pᄉ", "ᆷᄊ"),
-              ("ᆱ/Pᄌ", "ᆷᄍ")  ]
+    pairs = [
+        ("([ᆫᆷ])/Pᄀ", r"\1ᄁ"),
+        ("([ᆫᆷ])/Pᄃ", r"\1ᄄ"),
+        ("([ᆫᆷ])/Pᄉ", r"\1ᄊ"),
+        ("([ᆫᆷ])/Pᄌ", r"\1ᄍ"),
+        ("ᆬ/Pᄀ", "ᆫᄁ"),
+        ("ᆬ/Pᄃ", "ᆫᄄ"),
+        ("ᆬ/Pᄉ", "ᆫᄊ"),
+        ("ᆬ/Pᄌ", "ᆫᄍ"),
+        ("ᆱ/Pᄀ", "ᆷᄁ"),
+        ("ᆱ/Pᄃ", "ᆷᄄ"),
+        ("ᆱ/Pᄉ", "ᆷᄊ"),
+        ("ᆱ/Pᄌ", "ᆷᄍ"),
+    ]
 
     for str1, str2 in pairs:
         out = re.sub(str1, str2, out)
@@ -133,7 +134,7 @@ def balb(inp, descriptive=False, verbose=False):
 
     # exceptions
     out = re.sub(f"(바)ᆲ({syllable_final_or_consonants})", r"\1ᆸ\2", out)
-    out = re.sub(f"(너)ᆲ([ᄌᄍ]ᅮ|[ᄃᄄ]ᅮ)", r"\1ᆸ\2", out)
+    out = re.sub("(너)ᆲ([ᄌᄍ]ᅮ|[ᄃᄄ]ᅮ)", r"\1ᆸ\2", out)
     # gloss(verbose, out, inp, rule)
     return out
 
@@ -155,21 +156,21 @@ def palatalize(inp, descriptive=False, verbose=False):
 def modifying_rieul(inp, descriptive=False, verbose=False):
     rule = rule_id2text["27"]
     out = inp
-    
-    pairs = [   
-                # ("ᆯ/E ᄀ", r"ᆯ ᄁ"),
-                # ("ᆯ/E ᄃ", r"ᆯ ᄄ"),
-                # ("ᆯ/E ᄇ", r"ᆯ ᄈ"),
-                # ("ᆯ/E ᄉ", r"ᆯ ᄊ"),
-                # ("ᆯ/E ᄌ", r"ᆯ ᄍ"),
 
-                ("ᆯ걸", "ᆯ껄"),
-                ("ᆯ밖에", "ᆯ빠께"),
-                ("ᆯ세라", "ᆯ쎄라"),
-                ("ᆯ수록", "ᆯ쑤록"),
-                ("ᆯ지라도", "ᆯ찌라도"),
-                ("ᆯ지언정", "ᆯ찌언정"),
-                ("ᆯ진대", "ᆯ찐대") ]
+    pairs = [
+        # ("ᆯ/E ᄀ", r"ᆯ ᄁ"),
+        # ("ᆯ/E ᄃ", r"ᆯ ᄄ"),
+        # ("ᆯ/E ᄇ", r"ᆯ ᄈ"),
+        # ("ᆯ/E ᄉ", r"ᆯ ᄊ"),
+        # ("ᆯ/E ᄌ", r"ᆯ ᄍ"),
+        ("ᆯ걸", "ᆯ껄"),
+        ("ᆯ밖에", "ᆯ빠께"),
+        ("ᆯ세라", "ᆯ쎄라"),
+        ("ᆯ수록", "ᆯ쑤록"),
+        ("ᆯ지라도", "ᆯ찌라도"),
+        ("ᆯ지언정", "ᆯ찌언정"),
+        ("ᆯ진대", "ᆯ찐대"),
+    ]
 
     for str1, str2 in pairs:
         out = re.sub(str1, str2, out)

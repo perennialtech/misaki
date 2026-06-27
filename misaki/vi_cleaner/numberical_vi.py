@@ -1,10 +1,8 @@
-from .num2vi import n2w, n2w_single
 import re
 
 from .datestime_vi import _remove_prefix_zero
-
+from .num2vi import n2w, n2w_single
 from .symbol_vi import vietnamese_set, vietnamese_without_num_re
-
 
 _negative_symbol_re = r"(.)(-{1})?"
 _normal_number_re = r"[\d]+"
@@ -18,7 +16,7 @@ _float_number_re = r"[\d]+[,]{1}[\d]+"
 
 _phone_re = r"(((\+84|84|0|0084){1})(3|5|7|8|9))+([0-9]{8})"
 
-_prefix_range= r"(từ|tới|còn|đến|khoảng|sau)"
+_prefix_range = r"(từ|tới|còn|đến|khoảng|sau)"
 
 _end_number_re = (
     r"(-)?("
@@ -61,7 +59,14 @@ _number_re = (
 )
 
 _multiply_number_re = "(" + _normal_number_re + r")(x|\sx\s)(" + _normal_number_re + ")"
-_range_number_re = re.compile(_prefix_range + _number_re + r"(-|\s\-\s)" + _end_number_re + vietnamese_without_num_re, re.IGNORECASE)
+_range_number_re = re.compile(
+    _prefix_range
+    + _number_re
+    + r"(-|\s\-\s)"
+    + _end_number_re
+    + vietnamese_without_num_re,
+    re.IGNORECASE,
+)
 _special_ordinal_pattern = r"(thứ|hạng)(\s)(1|4)"
 
 
@@ -82,14 +87,25 @@ def _expand_phone(match):
 
 
 def _expand_range(match):
-    prefix0, prefix1, negative_symbol1, number_start, space, negative_symbol2, number_end, ending = match.groups(0)
+    (
+        prefix0,
+        prefix1,
+        negative_symbol1,
+        number_start,
+        space,
+        negative_symbol2,
+        number_end,
+        ending,
+    ) = match.groups(0)
     prefix1 = "" if prefix1 == 0 else prefix1
     if prefix1 in vietnamese_set:
         return match.group(0)
     else:
         number_start = "-" + number_start if negative_symbol1 == "-" else number_start
         number_end = "-" + number_end if negative_symbol2 == "-" else number_end
-        return prefix0 + prefix1 + n2w(number_start) + " đến " + n2w(number_end) + ending
+        return (
+            prefix0 + prefix1 + n2w(number_start) + " đến " + n2w(number_end) + ending
+        )
 
 
 def _expand_ordinal(match):

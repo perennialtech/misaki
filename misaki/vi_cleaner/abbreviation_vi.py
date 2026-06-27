@@ -1,5 +1,5 @@
-import re
 import json
+import re
 from pathlib import Path
 
 _percent_re = re.compile(r"([ ]?[%])")
@@ -17,10 +17,15 @@ _abbreviations_vi = {
     "bik": "biết",
 }
 _abbreviations_vi.update(
-    json.loads(Path(__file__, '..', '..', 'data', 'vi_teencode.json').resolve().read_text(encoding="utf-8"))
+    json.loads(
+        Path(__file__, "..", "..", "data", "vi_teencode.json")
+        .resolve()
+        .read_text(encoding="utf-8")
+    )
 )
 
 _abbreviations_combine_re = r"(" + "|".join(_abbreviations_vi.keys()) + r")"
+
 
 def _expand_percent_vi(m):
     return " phần trăm"
@@ -39,7 +44,12 @@ def _expand_abbreviations_vi(m):
 def normalize_abbreviations_vi(text):
     text = normalize_speacial_symbol_vi(text)
     text = re.sub(_url_re, _expand_urls_vi, text)
-    text = re.sub(r"\b" + _abbreviations_combine_re + r"\b", _expand_abbreviations_vi, text, flags=re.IGNORECASE)
+    text = re.sub(
+        r"\b" + _abbreviations_combine_re + r"\b",
+        _expand_abbreviations_vi,
+        text,
+        flags=re.IGNORECASE,
+    )
     return text
 
 

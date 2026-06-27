@@ -1,5 +1,7 @@
-from .g2pkc import G2p
 from typing import Tuple
+
+from .g2pkc import G2p
+
 
 class KOG2P:
     def __init__(self):

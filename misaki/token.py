@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import Optional
+
 import addict
+
 
 @dataclass
 class MToken:

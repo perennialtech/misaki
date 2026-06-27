@@ -1,4 +1,5 @@
 import re
+
 from .symbol_vi import vietnamese_re, vietnamese_without_num_re
 
 _measurement_key_vi = {
@@ -43,8 +44,18 @@ _measurement_key_vi = {
 }
 
 _measurement_combine_regex = "|".join(_measurement_key_vi.keys())
-_measurement_pattern = re.compile(vietnamese_without_num_re + "(" + _measurement_combine_regex + ")" + vietnamese_re)
-_measurement_with_splash_pattern = re.compile(vietnamese_without_num_re + "(" + _measurement_combine_regex + ")(/)(" + _measurement_combine_regex + ")" + vietnamese_re)
+_measurement_pattern = re.compile(
+    vietnamese_without_num_re + "(" + _measurement_combine_regex + ")" + vietnamese_re
+)
+_measurement_with_splash_pattern = re.compile(
+    vietnamese_without_num_re
+    + "("
+    + _measurement_combine_regex
+    + ")(/)("
+    + _measurement_combine_regex
+    + ")"
+    + vietnamese_re
+)
 
 
 def _expand_measurement_vi(match):
@@ -63,6 +74,8 @@ def _expand_measurement_with_splash_vi(match):
 
 
 def normalize_measurement_vi(text):
-    text = re.sub(_measurement_with_splash_pattern, _expand_measurement_with_splash_vi, text)
+    text = re.sub(
+        _measurement_with_splash_pattern, _expand_measurement_with_splash_vi, text
+    )
     text = re.sub(_measurement_pattern, _expand_measurement_vi, text)
     return text

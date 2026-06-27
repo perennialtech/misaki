@@ -6,7 +6,14 @@ from .symbol_vi import vietnamese_re
 _quotes_symbol = r"(\"|\')?"
 _space = r"(\s)"
 _roman_number_re = r"(\b(?!LLC)(?=[MDCLXVI]+\b)M{0,4}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})\b)"
-_true_letter_re = r"(chữ|chữ cái|kí tự|ký tự)" + _space + _quotes_symbol + r"([A-Z]+)" + _quotes_symbol + vietnamese_re
+_true_letter_re = (
+    r"(chữ|chữ cái|kí tự|ký tự)"
+    + _space
+    + _quotes_symbol
+    + r"([A-Z]+)"
+    + _quotes_symbol
+    + vietnamese_re
+)
 
 
 def _expand_roman(match):

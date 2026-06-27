@@ -1,61 +1,62 @@
 # -*- coding: utf-8 -*-
-'''
+"""
 Convert English to Hangul
 https://github.com/kyubyong/g2pK
-'''
+"""
 
 import re
 
-from .utils import adjust, compose, to_choseong, to_jungseong, to_jongseong, reconstruct
-
+from .utils import (adjust, compose, reconstruct, to_choseong, to_jongseong,
+                    to_jungseong)
 
 eng2kor = {
-    'A': '에이',
-    'B': '비',
-    'C': '씨',
-    'D': '디',
-    'E': '이',
-    'F': '에프',
-    'G': '지',
-    'H': '에이치',
-    'I': '아이',
-    'J': '제이',
-    'K': '케이',
-    'L': '엘',
-    'M': '엠',
-    'N': '엔',
-    'O': '오',
-    'P': '피',
-    'Q': '큐',
-    'R': '알',
-    'S': '에스',
-    'T': '티',
-    'U': '유',
-    'V': '브이',
-    'W': '더블유',
-    'X': '엑스',
-    'Y': '와이',
-    'Z': '지',
+    "A": "에이",
+    "B": "비",
+    "C": "씨",
+    "D": "디",
+    "E": "이",
+    "F": "에프",
+    "G": "지",
+    "H": "에이치",
+    "I": "아이",
+    "J": "제이",
+    "K": "케이",
+    "L": "엘",
+    "M": "엠",
+    "N": "엔",
+    "O": "오",
+    "P": "피",
+    "Q": "큐",
+    "R": "알",
+    "S": "에스",
+    "T": "티",
+    "U": "유",
+    "V": "브이",
+    "W": "더블유",
+    "X": "엑스",
+    "Y": "와이",
+    "Z": "지",
 }
 
 
 def word_to_hangul(word):
-    ret = ''
+    ret = ""
     for alpha in word:
         ret += eng2kor[alpha]
     return ret
 
+
 def convert_eng(string, cmu):
-    '''Convert a string such that English words inside are turned into Hangul.
+    """Convert a string such that English words inside are turned into Hangul.
     string: input string.
     cmu: cmu dict object.
 
     >>> convert_eng("그 사람 좀 old school이야", cmu)
     그 사람 좀 올드 스쿨이야
-    '''
+    """
     eng_words = list(set(re.findall("[A-Za-z]+", string)))
     for eng_word in sorted(eng_words, key=len, reverse=True):
-        print('eng_word :', eng_word)
+        print("eng_word :", eng_word)
         if eng_word.isupper() or (eng_word.lower() not in cmu):
             ret = word_to_hangul(eng_word.upper())
             string = string.replace(eng_word, ret)
@@ -63,11 +64,11 @@ def convert_eng(string, cmu):
             continue
 
         word = eng_word.lower()
-        arpabets = cmu[word][0] # https://en.wikipedia.org/wiki/ARPABET
+        arpabets = cmu[word][0]  # https://en.wikipedia.org/wiki/ARPABET
         phonemes = adjust(arpabets)
         ret = ""
         for i in range(len(phonemes)):
-            p = phonemes[i] # phoneme
+            p = phonemes[i]  # phoneme
             p_prev = phonemes[i - 1] if i > 0 else "^"
             p_next = phonemes[i + 1] if i < len(phonemes) - 1 else "$"
             p_next2 = phonemes[i + 1] if i < len(phonemes) - 2 else "$"
@@ -126,7 +127,12 @@ def convert_eng(string, cmu):
             # 4항. 파찰음([ʦ], [ʣ], [ʧ], [ʤ])
             # 1. 어말 또는 자음 앞의 [ʦ], [ʣ]는 '츠', '즈'로 적고, [ʧ], [ʤ]는 '치', '지'로 적는다.
             # 2. 모음 앞의 [ʧ], [ʤ]는 'ㅊ', 'ㅈ'으로 적는다.
-            elif p in ("TS", "DZ", "CH", "JH",):
+            elif p in (
+                "TS",
+                "DZ",
+                "CH",
+                "JH",
+            ):
                 ret += to_choseong(p)  # 2
 
                 if p_next[0] in syllable_final_or_consonants:  # 1
@@ -181,11 +187,13 @@ def convert_eng(string, cmu):
 
         ret = reconstruct(ret)
         ret = compose(ret)
-        ret = re.sub("[\u1100-\u11FF]", "", ret) # remove hangul jamo
+        ret = re.sub("[\u1100-\u11ff]", "", ret)  # remove hangul jamo
         string = string.replace(eng_word, ret)
     return string
 
+
 if __name__ == "__main__":
     from nltk.corpus import cmudict
+
     cmu = cmudict.dict()
     print(convert_eng("오늘 학교에서 밥을 먹고 집에 와서 game을 했다", cmu))
