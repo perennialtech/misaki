@@ -2,7 +2,7 @@ from typing import List, Optional, Tuple
 
 import pyopenjtalk
 
-from .token import MToken
+from ..token import MToken
 
 M2P = {
     chr(12449): "a",  # ァ

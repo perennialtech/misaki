@@ -20,7 +20,7 @@ import jieba.posseg as psg
 from pypinyin import Style, lazy_pinyin, load_phrases_dict, load_single_dict
 from pypinyin_dict.phrase_pinyin_data import large_pinyin
 
-from .token import MToken
+from ..token import MToken
 from .tone_sandhi import ToneSandhi
 
 INITIALS = [

@@ -15,7 +15,7 @@ class ZHG2P:
         self.en_callable = en_callable
         self.unk = unk
         if version == "1.1":
-            from .zh_frontend import ZHFrontend
+            from .frontend import ZHFrontend
 
             self.frontend = ZHFrontend(unk=unk)
             if en_callable is None:

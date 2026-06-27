@@ -12,7 +12,7 @@ from num2words import num2words
 from transformers import BartForConditionalGeneration
 
 from . import data
-from .token import MToken
+from ..token import MToken
 
 
 def merge_tokens(tokens: List[MToken], unk: Optional[str] = None) -> MToken:
