@@ -82,10 +82,6 @@ The first gen Chinese tokenizer uses jieba to cut, pypinyin, and pinyin-to-ipa.
 - https://github.com/mozillazg/python-pinyin
 - https://github.com/stefantaubert/pinyin-to-ipa
 
-### Vietnamese
-
-- https://github.com/v-nhandt21/Viphoneme
-
 ### TODO
 
 - [ ] Data: Compress [data](https://github.com/hexgrad/misaki/tree/main/misaki/data) (no need for indented json) and eliminate redundancy between gold and silver dictionaries.
