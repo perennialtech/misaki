@@ -25,8 +25,11 @@ dependencies = [
 [project.optional-dependencies]
 en = ["num2words", "spacy<4", "spacy-curated-transformers", "phonemizer-fork", "espeakng-loader", "torch", "transformers"]
 ja = ["fugashi", "jaconv", "mojimoji", "unidic", "pyopenjtalk"]
-ko = ["jamo", "nltk"]
+ko = [ "jamo", "mecab", "nltk"]
 zh = ["jieba", "ordered-set", "pypinyin", "cn2an", "pypinyin-dict"]
+ui = [
+    "gradio>=6.19.0",
+]
 
 [build-system]
 requires = ["hatchling"]
