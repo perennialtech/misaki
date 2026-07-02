@@ -26,5 +26,4 @@ jobs:
       - run: uv pip install --system pytest
       - run: uv pip install --system --editable ".[en]"
 
-      - run: pytest || true
-      - run: python examples/usage.py
+      - run: pytest tests/
