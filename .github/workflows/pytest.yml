@@ -11,12 +11,20 @@ jobs:
         python-version: ["3.11", "3.12", "3.13", "3.14"]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@b9e0990d219a03df7633c93f6f005a8fecbcab22 # v7.0.0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@c5680ec91f7b9b91406fab4ded5d45245abf7b67 # v8.2.0
+        with:
+          enable-cache: true
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: ${{ matrix.python-version }}
           allow-prereleases: true
-      - run: pip install pytest
-      - run: pip install --editable ".[en]"
-      - run: pytest || true # There are no tests.
+
+      - run: uv pip install --system pytest
+      - run: uv pip install --system --editable ".[en]"
+
+      - run: pytest || true
       - run: python examples/usage.py
