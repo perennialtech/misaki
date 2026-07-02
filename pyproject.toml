@@ -21,7 +21,7 @@ classifiers = [
 requires-python = ">=3.11, <3.15"
 dependencies = [
     "addict>=2.4",
-    "pip>=26.1", # Spacy needs pip within Python, uv lacks pip by default
+    # Spacy needs pip within Python, uv lacks pip by default
     "regex>=2026.5",
 ]
 
