@@ -184,13 +184,13 @@ class Lexicon:
         self.cap_stresses = (0.5, 2)
         self.golds = {}
         self.silvers = {}
-        with importlib.resources.open_text(
-            data, f"{'gb' if british else 'us'}_gold.json"
-        ) as r:
+        with (
+            importlib.resources.files(data) / f"{'gb' if british else 'us'}_gold.json"
+        ).open("r", encoding="utf-8") as r:
             self.golds = Lexicon.grow_dictionary(json.load(r))
-        with importlib.resources.open_text(
-            data, f"{'gb' if british else 'us'}_silver.json"
-        ) as r:
+        with (
+            importlib.resources.files(data) / f"{'gb' if british else 'us'}_silver.json"
+        ).open("r", encoding="utf-8") as r:
             self.silvers = Lexicon.grow_dictionary(json.load(r))
         assert all(
             isinstance(v, str) or isinstance(v, dict) for v in self.golds.values()
