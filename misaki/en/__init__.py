@@ -84,7 +84,7 @@ del make_subtokenize_once
 
 LINK_REGEX = re.compile(r"\[([^\]]+)\]\(([^\)]*)\)")
 
-SUBTOKEN_JUNKS = frozenset("',-._‘’/")
+SUBTOKEN_JUNKS = frozenset("',-._‘’")
 PUNCTS = frozenset(';:,.!?—…"“”')
 NON_QUOTE_PUNCTS = frozenset(p for p in PUNCTS if p not in '"“”')
 
@@ -112,7 +112,8 @@ CURRENCIES = {
 }
 ORDINALS = frozenset(["st", "nd", "rd", "th"])
 
-ADD_SYMBOLS = {".": "dot", "/": "slash"}
+ADD_SYMBOLS = {".": "dot"}
+SPOKEN_SYMBOLS = {"/": ("slash", 2)}
 SYMBOLS = {"%": "percent", "&": "and", "+": "plus", "@": "at"}
 
 US_VOCAB = frozenset("AIOWYbdfhijklmnpstuvwzæðŋɑɔəɛɜɡɪɹɾʃʊʌʒʤʧˈˌθᵊᵻʔ")  # ɐ
@@ -212,7 +213,10 @@ class Lexicon:
         return PRIMARY_STRESS.join(ps), 3
 
     def get_special_case(self, word, tag, stress, ctx):
-        if tag == "ADD" and word in ADD_SYMBOLS:
+        if word in SPOKEN_SYMBOLS:
+            alias, symbol_stress = SPOKEN_SYMBOLS[word]
+            return self.lookup(alias, None, symbol_stress, ctx)
+        elif tag == "ADD" and word in ADD_SYMBOLS:
             return self.lookup(ADD_SYMBOLS[word], None, -0.5, ctx)
         elif word in SYMBOLS:
             return self.lookup(SYMBOLS[word], None, None, ctx)
@@ -778,8 +782,10 @@ class G2P:
                 elif tk.tag == ":" and tk.text in ("-", "–"):
                     tk.phonemes = "—"
                     tk._.rating = 3
-                elif tk.tag in PUNCT_TAGS and not all(
-                    97 <= ord(c.lower()) <= 122 for c in tk.text
+                elif (
+                    tk.text not in SPOKEN_SYMBOLS
+                    and tk.tag in PUNCT_TAGS
+                    and not all(97 <= ord(c.lower()) <= 122 for c in tk.text)
                 ):
                     tk.phonemes = PUNCT_TAG_PHONEMES.get(
                         tk.tag, "".join(c for c in tk.text if c in PUNCTS)
