@@ -1,125 +1,238 @@
-# Misaki English Phonemes
+# Misaki English phonemes
 
-For English, Misaki currently uses 49 total phonemes. Of these, 41 are shared by both Americans and Brits, 4 are American-only, and 4 are British-only.
+This document describes the English phoneme symbols emitted by Misaki 0.9.4.
 
-Disclaimer: Author is an ML researcher, not a linguist, and may have butchered or reappropriated the traditional meaning of some symbols. These symbols are intended as input tokens for neural networks to yield optimal performance.
+Misaki's English inventory is version-dependent. Counts below exclude punctuation, whitespace, empty phoneme strings, the default unknown marker `❓`, and explicit user overrides such as `[word](/customphones/)`.
 
-### 🤝 Shared (41)
+The practical English output inventory is:
 
-**Stress Marks (2)**
+| Mode                                            | Count | Dialect-specific symbols |
+| ----------------------------------------------- | ----: | ------------------------ |
+| Shared English output                           |    42 | None                     |
+| American, default or legacy, `version != "2.0"` |    46 | `æ O ᵻ T`                |
+| American, v2, `version == "2.0"`                |    47 | `æ O ᵻ ɾ ʔ`              |
+| British                                         |    46 | `a Q ɒ ː`                |
+| Union across English dialects and versions      |    52 | `æ O ᵻ T ɾ ʔ a Q ɒ ː`    |
 
-- `ˈ`: Primary stress, visually looks similar to an apostrophe.
+Important implementation note: `ɐ` is not currently included in the `US_VOCAB` or `GB_VOCAB` constants, but English special cases do emit it for weak function words such as `a`, `an`, and weak `am`. This document counts `ɐ` as a shared practical output symbol.
+
+The symbols are intended as input tokens for neural networks. Some are IPA symbols, some are merged clusters, and some are Misaki-specific aliases.
+
+### Shared English output symbols (42)
+
+#### Stress marks (2)
+
+- `ˈ`: Primary stress.
 - `ˌ`: Secondary stress.
 
-**IPA Consonants (22)**
+#### IPA-style consonants (22)
 
-- `bdfhjklmnpstvwz`: 15 alpha consonants taken from IPA. They mostly sound as you'd expect, but `j` actually represents the "y" sound, like `yes => jˈɛs`.
-- `ɡ`: Hard "g" sound, like `get => ɡɛt`. Visually looks like the lowercase letter g, but its actually `U+0261`.
-- `ŋ`: The "ng" sound, like `sung => sˈʌŋ`.
-- `ɹ`: Upside-down r is just an "r" sound, like `red => ɹˈɛd`.
-- `ʃ`: The "sh" sound, like `shin => ʃˈɪn`.
-- `ʒ`: The "zh" sound, like `Asia => ˈAʒə`.
-- `ð`: Soft "th" sound, like `than => ðən`.
-- `θ`: Hard "th" sound, like `thin => θˈɪn`.
+- `b d f h k l m n p s t v w z`: Common consonants, mostly used as expected.
+- `j`: The "y" sound, as in `yes => jˈɛs`.
+- `ɡ`: Hard "g" sound, as in `get => ɡɛt`. This is `U+0261`, not the ASCII letter `g`.
+- `ŋ`: The "ng" sound, as in `sung => sˈʌŋ`.
+- `ɹ`: English "r" sound, as in `red => ɹˈɛd`.
+- `ʃ`: The "sh" sound, as in `shin => ʃˈɪn`.
+- `ʒ`: The "zh" sound, as in `Asia => ˈAʒə`.
+- `ð`: Voiced "th" sound, as in `than => ðən`.
+- `θ`: Voiceless "th" sound, as in `thin => θˈɪn`.
 
-**Consonant Clusters (2)**
+#### Merged consonant clusters (2)
 
-- `ʤ`: A "j" or "dg" sound, merges `dʒ`, like `jump => ʤˈʌmp` or `lunge => lˈʌnʤ`.
-- `ʧ`: The "ch" sound, merges `tʃ`, like `chump => ʧˈʌmp` or `lunch => lˈʌnʧ`.
+- `ʤ`: The "j" or "dg" sound, merged from `dʒ`, as in `jump => ʤˈʌmp` or `lunge => lˈʌnʤ`.
+- `ʧ`: The "ch" sound, merged from `tʃ`, as in `chump => ʧˈʌmp` or `lunch => lˈʌnʧ`.
 
-**IPA Vowels (10)**
+#### IPA-style vowels (10)
 
-- `ə`: The schwa is a common, unstressed vowel sound, like `a 🍌 => ə 🍌`.
+- `ə`: Schwa, a common reduced vowel.
 - `i`: As in `easy => ˈizi`.
 - `u`: As in `flu => flˈu`.
 - `ɑ`: As in `spa => spˈɑ`.
 - `ɔ`: As in `all => ˈɔl`.
-- `ɛ`: As in `hair => hˈɛɹ` or `bed => bˈɛd`. Possibly dubious, because those vowel sounds do not sound similar to my ear.
-- `ɜ`: As in `her => hɜɹ`. Easy to confuse with `ɛ` above.
+- `ɛ`: As in `bed => bˈɛd`.
+- `ɜ`: As in American `her => hɜɹ`.
 - `ɪ`: As in `brick => bɹˈɪk`.
 - `ʊ`: As in `wood => wˈʊd`.
 - `ʌ`: As in `sun => sˈʌn`.
 
-**Diphthong Vowels (4)**
+#### Diphthong vowels shared by both dialects (4)
 
-- `A`: The "eh" vowel sound, like `hey => hˈA`. Expands to `eɪ` in IPA.
-- `I`: The "eye" vowel sound, like `high => hˈI`. Expands to `aɪ` in IPA.
-- `W`: The "ow" vowel sound, like `how => hˌW`. Expands to `aʊ` in IPA.
-- `Y`: The "oy" vowel sound, like `soy => sˈY`. Expands to `ɔɪ` in IPA.
+- `A`: The "ay" vowel, expands roughly to IPA `eɪ`, as in `hey => hˈA`.
+- `I`: The "eye" vowel, expands roughly to IPA `aɪ`, as in `high => hˈI`.
+- `W`: The "ow" vowel, expands roughly to IPA `aʊ`, as in `how => hˌW`.
+- `Y`: The "oy" vowel, expands roughly to IPA `ɔɪ`, as in `soy => sˈY`.
 
-**Custom Vowel (1)**
+#### Reduced or custom vowels (2)
 
-- `ᵊ`: Small schwa, muted version of `ə`, like `pixel => pˈɪksᵊl`. I made this one up, so I'm not entirely sure if it's correct.
+- `ᵊ`: Small schwa, a muted version of `ə`, as in `pixel => pˈɪksᵊl`.
+- `ɐ`: Weak reduced vowel emitted by English special cases, as in determiner `a => ɐ`, `an => ɐn`, and weak `am => ɐm`.
 
-### 🇺🇸 American-only (4)
+### American-only symbols
 
-**Vowels (3)**
+American output differs depending on `version`.
 
-- `æ`: The vowel sound at the start of `ash => ˈæʃ`.
-- `O`: Capital letter representing the American "oh" vowel sound. Expands to `oʊ` in IPA.
-- `ᵻ`: A sound somewhere in between `ə` and `ɪ`, often used in certain -s suffixes like `boxes => bˈɑksᵻz`.
+#### American symbols in all English versions (3)
 
-**Consonant (1)**
+- `æ`: TRAP vowel, as in `ash => ˈæʃ`.
+- `O`: American GOAT vowel, expands roughly to IPA `oʊ`, as in `go => ɡˈO`.
+- `ᵻ`: Reduced vowel between `ə` and `ɪ`, often used in some suffixes, as in `boxes => bˈɑksᵻz`.
 
-- `ɾ`: A sound somewhere in between `t` and `d`, like `butter => bˈʌɾəɹ`.
+#### American default or legacy symbol, `version != "2.0"` (1)
 
-### 🇬🇧 British-only (4)
+- `T`: Legacy Misaki flap token. In default mode, final English output maps `ɾ` to `T`, so American `butter`-like flaps are represented with `T`.
 
-**Vowels (3)**
+#### American v2 symbols, `version == "2.0"` (2)
 
-- `a`: The vowel sound at the start of `ash => ˈaʃ`.
-- `Q`: Capital letter representing the British "oh" vowel sound. Expands to `əʊ` in IPA.
-- `ɒ`: The sound at the start of `on => ˌɒn`. Easy to confuse with `ɑ`, which is a shared phoneme.
+- `ɾ`: Alveolar flap, as in American `butter => bˈʌɾəɹ`.
+- `ʔ`: Glottal stop. This is preserved in v2 output and folded to `t` in default or legacy output.
 
-**Other (1)**
+### British-only symbols (4)
 
-- `ː`: Vowel extender, visually looks similar to a colon. Possibly dubious, because Americans extend vowels too, but the gold US dictionary somehow lacks these. Often used by the Brits instead of `ɹ`: Americans say `or => ɔɹ`, but Brits say `or => ɔː`.
+- `a`: British TRAP vowel, as in `ash => ˈaʃ`.
+- `Q`: British GOAT vowel, expands roughly to IPA `əʊ`, as in `go => ɡˈQ`.
+- `ɒ`: British LOT vowel, as in `on => ˌɒn`.
+- `ː`: Vowel length mark, as in British `or => ɔː`.
 
-### ♻️ From espeak to Misaki
+### Punctuation and non-phone output
+
+The English G2P result can include punctuation symbols. These are not phonemes and are not counted in the phoneme inventory.
+
+Punctuation that can be emitted includes:
+
+```txt
+; : , . ! ? — … " “ ” ( )
+```
+
+Other non-phone output behavior:
+
+- Whitespace is preserved from the token stream.
+- Some tokens can produce an empty phoneme string, for example currency signs before numbers.
+- Unknown tokens use `❓` by default, controlled by `unk`.
+- Explicit user overrides such as `[word](/phonemes/)` can inject arbitrary strings, so strict inventory guarantees only apply when such overrides are excluded.
+
+### Inventory validation sets
+
+These sets describe practical English output, not only the `US_VOCAB` and `GB_VOCAB` constants.
+
+```py
+SHARED_ENGLISH_OUTPUT = frozenset(
+    "AIWY"
+    "bdfhijklmnpstuvwz"
+    "ðŋɑɔəɛɜɡɪɹʃʊʌʒʤʧˈˌθᵊɐ"
+)
+
+US_DEFAULT_OR_LEGACY_ONLY = frozenset("æOᵻT")
+US_V2_ONLY = frozenset("æOᵻɾʔ")
+GB_ONLY = frozenset("aQɒː")
+
+US_DEFAULT_OR_LEGACY = SHARED_ENGLISH_OUTPUT | US_DEFAULT_OR_LEGACY_ONLY
+US_V2 = SHARED_ENGLISH_OUTPUT | US_V2_ONLY
+GB = SHARED_ENGLISH_OUTPUT | GB_ONLY
+ENGLISH_UNION = (
+    SHARED_ENGLISH_OUTPUT
+    | US_DEFAULT_OR_LEGACY_ONLY
+    | US_V2_ONLY
+    | GB_ONLY
+)
+
+assert len(SHARED_ENGLISH_OUTPUT) == 42
+assert len(US_DEFAULT_OR_LEGACY) == 46
+assert len(US_V2) == 47
+assert len(GB) == 46
+assert len(ENGLISH_UNION) == 52
+```
+
+### From eSpeak to Misaki for English fallback
+
+`EspeakFallback` uses this English-specific conversion. The replacement order matters, longest eSpeak strings are replaced first.
 
 ```py
 import re
-FROM_ESPEAKS = sorted({'\u0303':'','a^ɪ':'I','a^ʊ':'W','d^ʒ':'ʤ','e':'A','e^ɪ':'A','r':'ɹ','t^ʃ':'ʧ','x':'k','ç':'k','ɐ':'ə','ɔ^ɪ':'Y','ə^l':'ᵊl','ɚ':'əɹ','ɬ':'l','ʔ':'t','ʔn':'tᵊn','ʔˌn\u0329':'tᵊn','ʲ':'','ʲO':'jO','ʲQ':'jQ'}.items(), key=lambda kv: -len(kv[0]))
-def from_espeak(ps, british):
-    for old, new in FROM_ESPEAKS:
-        ps = ps.replace(old, new)
-    ps = re.sub(r'(\S)\u0329', r'ᵊ\1', ps).replace(chr(809), '')
-    if british:
-        ps = ps.replace('e^ə', 'ɛː')
-        ps = ps.replace('iə', 'ɪə')
-        ps = ps.replace('ə^ʊ', 'Q')
-    else:
-        ps = ps.replace('o^ʊ', 'O')
-        ps = ps.replace('ɜːɹ', 'ɜɹ')
-        ps = ps.replace('ɜː', 'ɜɹ')
-        ps = ps.replace('ɪə', 'iə')
-        ps = ps.replace('ː', '')
-    return ps.replace('^', '')
 
-import phonemizer
-british = False
-espeak = phonemizer.backend.EspeakBackend(
-    language=f"en-{'gb' if british else 'us'}",
-    preserve_punctuation=True, with_stress=True, tie='^'
+E2M_ENGLISH = sorted(
+    {
+        "ʔˌn\u0329": "ʔn",
+        "ʔn\u0329": "ʔn",
+        "a^ɪ": "I",
+        "a^ʊ": "W",
+        "d^ʒ": "ʤ",
+        "e^ɪ": "A",
+        "e": "A",
+        "t^ʃ": "ʧ",
+        "ɔ^ɪ": "Y",
+        "ə^l": "ᵊl",
+        "ʲo": "jo",
+        "ʲə": "jə",
+        "ʲ": "",
+        "ɚ": "əɹ",
+        "r": "ɹ",
+        "x": "k",
+        "ç": "k",
+        "ɐ": "ə",
+        "ɬ": "l",
+        "\u0303": "",
+    }.items(),
+    key=lambda kv: -len(kv[0]),
 )
-text = 'merchantship'
-espeak_ps = espeak.phonemize([text])
-espeak_ps = espeak_ps[0].strip() if espeak_ps else ''
-assert espeak_ps == 'mˈɜːt^ʃəntʃˌɪp', espeak_ps
-ps = from_espeak(espeak_ps, british)
-assert ps == ('mˈɜːʧəntʃˌɪp' if british else 'mˈɜɹʧəntʃˌɪp'), ps
-VOCAB = frozenset('AIWYbdfhijklmnpstuvwzðŋɑɔəɛɜɡɪɹʃʊʌʒʤʧˈˌθᵊ' + ('Qaɒː' if british else 'Oæɾᵻ'))
-assert len(VOCAB) == 45, len(VOCAB)
-assert all(p in VOCAB for p in ps), ps
+
+
+def english_from_espeak(ps, british, version=None):
+    for old, new in E2M_ENGLISH:
+        ps = ps.replace(old, new)
+
+    ps = re.sub(r"(\S)\u0329", r"ᵊ\1", ps).replace(chr(809), "")
+
+    if british:
+        ps = ps.replace("e^ə", "ɛː")
+        ps = ps.replace("iə", "ɪə")
+        ps = ps.replace("ə^ʊ", "Q")
+    else:
+        ps = ps.replace("o^ʊ", "O")
+        ps = ps.replace("ɜːɹ", "ɜɹ")
+        ps = ps.replace("ɜː", "ɜɹ")
+        ps = ps.replace("ɪə", "iə")
+        ps = ps.replace("ː", "")
+
+    # For eSpeak versions before 1.52.
+    ps = ps.replace("o", "ɔ")
+
+    if version != "2.0":
+        ps = ps.replace("ɾ", "T").replace("ʔ", "t")
+
+    return ps.replace("^", "")
+
+
+espeak_ps = "mˈɜːt^ʃəntʃˌɪp"
+
+assert english_from_espeak(espeak_ps, british=False) == "mˈɜɹʧəntʃˌɪp"
+assert english_from_espeak(espeak_ps, british=True) == "mˈɜːʧəntʃˌɪp"
 ```
 
-### ♻️ Misaki to espeak
+Note that English `EspeakFallback` maps eSpeak `ɐ` to Misaki `ə`, while the English lexicon's own special cases can emit Misaki `ɐ`.
+
+### Generic eSpeak G2P note
+
+`EspeakG2P` is used for most non-English and non-CJK languages. It has a separate mapping and, in `version == "2.0"`, can introduce non-English nasal-vowel placeholder symbols such as `B C D E V U X Z`. Those are not part of the English inventory documented here.
+
+### From Misaki to eSpeak-like IPA
+
+This helper reverses the main English aliases approximately.
 
 ```py
 def to_espeak(ps):
-    # Optionally, you can add a tie character in between the 2 replacement characters.
-    ps = ps.replace('ʤ', 'dʒ').replace('ʧ', 'tʃ')
-    ps = ps.replace('A', 'eɪ').replace('I', 'aɪ').replace('Y', 'ɔɪ')
-    ps = ps.replace('O', 'oʊ').replace('Q', 'əʊ').replace('W', 'aʊ')
-    return ps.replace('ᵊ', 'ə')
+    # Optionally, insert tie characters between the two replacement characters.
+    ps = ps.replace("ʤ", "dʒ").replace("ʧ", "tʃ")
+
+    ps = ps.replace("A", "eɪ")
+    ps = ps.replace("I", "aɪ")
+    ps = ps.replace("Y", "ɔɪ")
+    ps = ps.replace("O", "oʊ")
+    ps = ps.replace("Q", "əʊ")
+    ps = ps.replace("W", "aʊ")
+
+    ps = ps.replace("T", "ɾ")
+    ps = ps.replace("ᵊ", "ə")
+    ps = ps.replace("ɐ", "ə")
+
+    return ps
 ```
