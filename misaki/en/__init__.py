@@ -250,7 +250,7 @@ class Lexicon:
             stress = PRIMARY_STRESS if ctx.future_vowel is None or tag != "IN" else ""
             return stress + "ɪn", 4
         elif word in ("the", "The") or (word == "THE" and tag == "DT"):
-            return "ði" if ctx.future_vowel == True else "ðə", 4
+            return "ði" if ctx.future_vowel else "ðə", 4
         elif tag == "IN" and re.match(r"(?i)vs\.?$", word):
             return self.lookup("versus", None, None, ctx)
         elif word in ("used", "Used", "USED"):
@@ -884,7 +884,7 @@ class G2P:
             tokens[i].phonemes = apply_stress(tokens[i].phonemes, -0.5)
 
     def __call__(self, text: str, preprocess=True) -> Tuple[str, List[MToken]]:
-        preprocess = G2P.preprocess if preprocess == True else preprocess
+        preprocess = G2P.preprocess if preprocess else preprocess
         text, tokens, features = preprocess(text) if preprocess else (text, [], {})
         tokens = self.tokenize(text, tokens, features)
         tokens = self.fold_left(tokens)

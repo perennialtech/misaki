@@ -58,7 +58,6 @@ class G2p(object):
         >>> idioms("지금 mp3 파일을 다운받고 있어요")
         지금 엠피쓰리 파일을 다운받고 있어요
         """
-        rule = "from idioms.txt"
         out = string
 
         for line in open(self.idioms_path, "r", encoding="utf8"):

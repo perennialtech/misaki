@@ -383,8 +383,8 @@ class Cutlet:
         out = []
         for wi, word in enumerate(words):
             po = out[-1] if out else None
-            pw = words[wi - 1] if wi > 0 else None
-            nw = words[wi + 1] if wi < len(words) - 1 else None
+            words[wi - 1] if wi > 0 else None
+            words[wi + 1] if wi < len(words) - 1 else None
             roma = self._romaji_word(word)
             tok = Token(roma, False)
             # handle punctuation with atypical spacing

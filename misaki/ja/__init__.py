@@ -316,7 +316,7 @@ class JAG2P:
         if self.cutlet:
             return self.cutlet(text)
         tokens = []
-        last_a, last_p = 0, ""
+        last_a, _last_p = 0, ""
         acc, mcount = None, 0
         for word in pyopenjtalk.run_frontend(text):
             pron, mora_size = word["pron"], word["mora_size"]
