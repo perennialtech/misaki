@@ -19,12 +19,16 @@ text = '[Misaki](/misˈɑki/) is a G2P engine designed for [Kokoro](/kˈOkəɹO/
 
 phonemes, tokens = g2p(text)
 
-print(phonemes) # misˈɑki ɪz ə ʤˈitəpˈi ˈɛnʤən dəzˈInd fɔɹ kˈOkəɹO mˈɑdᵊlz.
+print(phonemes) # misˈɑki ɪz ɐ ʤˈitəpˈi ˈɛnʤən dəzˈInd fɔɹ kˈOkəɹO mˈɑdᵊlz.
 ```
 
 To explicitly fallback to the neural network fallback:
 
 ```py
+!pip install -q "misaki[en,en-fallback]"
+
+from misaki import en
+
 fallback = en.FallbackNetwork(british=False)
 g2p = en.G2P(trf=False, british=False, fallback=fallback)
 ```
@@ -32,10 +36,7 @@ g2p = en.G2P(trf=False, british=False, fallback=fallback)
 To fallback to espeak:
 
 ```py
-# Installing espeak varies across platforms, this silent install works on Colab:
-!apt-get -qq -y install espeak-ng > /dev/null 2>&1
-
-!pip install -q "misaki[en]" phonemizer-fork
+!pip install -q "misaki[en,espeak]"
 
 from misaki import en, espeak
 

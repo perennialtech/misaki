@@ -11,13 +11,13 @@ Misaki's English inventory is version-dependent. The `version` values discussed 
 
 The practical English output inventory is:
 
-| Mode                                            | Count | Dialect-specific symbols |
-| ----------------------------------------------- | ----: | ------------------------ |
-| Shared English output                           |    42 | None                     |
-| American, default or legacy, `version != "2.0"` |    46 | `æ O ᵻ T`                |
-| American, v2, `version == "2.0"`                |    47 | `æ O ᵻ ɾ ʔ`              |
-| British                                         |    46 | `a Q ɒ ː`                |
-| Union across English dialects and versions      |    52 | `æ O ᵻ T ɾ ʔ a Q ɒ ː`    |
+| Mode                                           | Count | Dialect-specific symbols |
+| ---------------------------------------------- | ----: | ------------------------ |
+| Shared English output                          |    42 | None                     |
+| American, default or legacy, `version is None` |    46 | `æ O ᵻ T`                |
+| American, v2, `version == "2.0"`               |    47 | `æ O ᵻ ɾ ʔ`              |
+| British                                        |    46 | `a Q ɒ ː`                |
+| Union across English dialects and versions     |    52 | `æ O ᵻ T ɾ ʔ a Q ɒ ː`    |
 
 Internal validation inventories include `ɐ`. Bundled eSpeak conversion maps eSpeak `ɐ` to Misaki `ə`, while English lexical special cases emit Misaki `ɐ`. This document counts `ɐ` as a shared practical output symbol.
 
@@ -74,7 +74,7 @@ The symbols are intended as input tokens for neural networks. Some are IPA symbo
 
 ### American-only symbols
 
-American output differs depending on `version`.
+American output differs depending on `version`. Expected version configuration is exactly `None` and `"2.0"`.
 
 #### American symbols in all English versions (3)
 
@@ -82,7 +82,7 @@ American output differs depending on `version`.
 - `O`: American GOAT vowel, expands roughly to IPA `oʊ`, as in `go => ɡˈO`.
 - `ᵻ`: Reduced vowel between `ə` and `ɪ`, often used in some suffixes, as in `boxes => bˈɑksᵻz`.
 
-#### American default or legacy symbol, `version != "2.0"` (1)
+#### American default or legacy symbol, `version is None` (1)
 
 - `T`: Legacy Misaki flap token. In default mode, final English output maps `ɾ` to `T`, so American `butter`-like flaps are represented with `T`.
 

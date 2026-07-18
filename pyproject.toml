@@ -20,12 +20,13 @@ classifiers = [
 ]
 requires-python = ">=3.11, <3.15"
 dependencies = [
-    "addict>=2.4",
     "regex>=2026.5",
 ]
 
 [project.optional-dependencies]
-en = ["en-core-web-sm", "num2words", "spacy<4", "spacy-curated-transformers", "phonemizer-fork", "espeakng-loader", "torch", "transformers"]
+en = ["en-core-web-sm", "numpy", "num2words", "spacy<4"]
+en-fallback = ["torch", "transformers"]
+espeak = ["phonemizer-fork", "espeakng-loader"]
 ja = ["fugashi", "jaconv", "mojimoji", "unidic", "pyopenjtalk"]
 ko = [ "jamo", "mecab", "nltk"]
 zh = ["jieba", "ordered-set", "pypinyin", "cn2an", "pypinyin-dict"]
