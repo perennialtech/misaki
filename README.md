@@ -6,10 +6,14 @@ Hosted demo: https://hf.co/spaces/hexgrad/Misaki-G2P
 
 ### English Usage
 
+Misaki checks for the selected model but does not download it at runtime.
+- `G2P(trf=False)` requires explicitly installed `en_core_web_sm`.
+- `G2P(trf=True)` requires explicitly installed `en_core_web_trf`.
+
 You can run this in one cell on [Google Colab](https://colab.research.google.com/):
 
 ```py
-!pip install -q "misaki[en]"
+!pip install -q "misaki[en]" https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl
 
 from misaki import en
 
@@ -25,7 +29,7 @@ print(phonemes) # misˈɑki ɪz ɐ ʤˈitəpˈi ˈɛnʤən dəzˈInd fɔɹ kˈOk
 To explicitly fallback to the neural network fallback:
 
 ```py
-!pip install -q "misaki[en,en-fallback]"
+!pip install -q "misaki[en,en-fallback]" https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl
 
 from misaki import en
 
@@ -36,7 +40,7 @@ g2p = en.G2P(trf=False, british=False, fallback=fallback)
 To fallback to espeak:
 
 ```py
-!pip install -q "misaki[en,espeak]"
+!pip install -q "misaki[en,espeak]" https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl
 
 from misaki import en, espeak
 

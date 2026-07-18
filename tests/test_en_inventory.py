@@ -1,7 +1,7 @@
 from misaki.en_phonemes import (ENGLISH_UNION, GB, GB_ONLY,
                                 SHARED_ENGLISH_OUTPUT, US_DEFAULT_OR_LEGACY,
                                 US_DEFAULT_OR_LEGACY_ONLY, US_V2, US_V2_ONLY,
-                                finalize_english_phonemes)
+                                english_from_espeak, finalize_english_phonemes)
 
 
 def test_inventory_counts():
@@ -29,3 +29,20 @@ def test_finalize_english_phonemes():
     assert finalize_english_phonemes("ɾʔ", "2.0") == "ɾʔ"
     assert finalize_english_phonemes("hello! ɾʔ world", None) == "hello! Tt world"
     assert finalize_english_phonemes("hello! ɾʔ world", "2.0") == "hello! ɾʔ world"
+
+
+def test_english_from_espeak():
+    espeak_ps = "mˈɜːt^ʃəntʃˌɪp"
+    assert english_from_espeak(espeak_ps, british=False) == "mˈɜɹʧəntʃˌɪp"
+    assert english_from_espeak(espeak_ps, british=True) == "mˈɜːʧəntʃˌɪp"
+
+    # Representative merged diphthong and affricate mappings
+    assert english_from_espeak("e^ɪ", british=False) == "A"
+    assert english_from_espeak("a^ɪ", british=False) == "I"
+    assert english_from_espeak("t^ʃ", british=False) == "ʧ"
+
+    # eSpeak ɐ maps to Misaki ə
+    assert english_from_espeak("ɐ", british=False) == "ə"
+
+    # Tie characters absent from result
+    assert english_from_espeak("a^ɪ^b", british=False) == "Ib"

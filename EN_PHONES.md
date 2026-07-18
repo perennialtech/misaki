@@ -137,64 +137,12 @@ assert len(ENGLISH_UNION) == 52
 
 ### From eSpeak to Misaki for English fallback
 
-`EspeakFallback` uses this English-specific conversion. The replacement order matters, longest eSpeak strings are replaced first.
+`EspeakFallback` uses an English-specific conversion loop provided by `english_from_espeak`. The replacement order matters, longest eSpeak strings are replaced first.
 
 ```py
-import re
-
-E2M_ENGLISH = sorted(
-    {
-        "ʔˌn\u0329": "ʔn",
-        "ʔn\u0329": "ʔn",
-        "a^ɪ": "I",
-        "a^ʊ": "W",
-        "d^ʒ": "ʤ",
-        "e^ɪ": "A",
-        "e": "A",
-        "t^ʃ": "ʧ",
-        "ɔ^ɪ": "Y",
-        "ə^l": "ᵊl",
-        "ʲo": "jo",
-        "ʲə": "jə",
-        "ʲ": "",
-        "ɚ": "əɹ",
-        "r": "ɹ",
-        "x": "k",
-        "ç": "k",
-        "ɐ": "ə",
-        "ɬ": "l",
-        "\u0303": "",
-    }.items(),
-    key=lambda kv: -len(kv[0]),
-)
-
-
-def english_from_espeak(ps, british):
-    for old, new in E2M_ENGLISH:
-        ps = ps.replace(old, new)
-
-    ps = re.sub(r"(\S)\u0329", r"ᵊ\1", ps).replace(chr(809), "")
-
-    if british:
-        ps = ps.replace("e^ə", "ɛː")
-        ps = ps.replace("iə", "ɪə")
-        ps = ps.replace("ə^ʊ", "Q")
-    else:
-        ps = ps.replace("o^ʊ", "O")
-        ps = ps.replace("ɜːɹ", "ɜɹ")
-        ps = ps.replace("ɜː", "ɜɹ")
-        ps = ps.replace("ɪə", "iə")
-        ps = ps.replace("ː", "")
-
-    # For eSpeak versions before 1.52.
-    ps = ps.replace("o", "ɔ")
-
-    return ps.replace("^", "")
-
+from misaki.en_phonemes import english_from_espeak, finalize_english_phonemes
 
 espeak_ps = "mˈɜːt^ʃəntʃˌɪp"
-from misaki.en_phonemes import finalize_english_phonemes
-
 assert english_from_espeak(espeak_ps, british=False) == "mˈɜɹʧəntʃˌɪp"
 assert english_from_espeak(espeak_ps, british=True) == "mˈɜːʧəntʃˌɪp"
 assert finalize_english_phonemes("mˈɜɹʧəntʃˌɪp", version="2.0") == "mˈɜɹʧəntʃˌɪp"

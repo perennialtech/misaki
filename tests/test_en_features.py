@@ -2,8 +2,9 @@ import pytest
 import spacy
 
 from misaki import en
-from misaki.en._g2p import merge_tokens
-from misaki.en._lexicon import Lexicon, TokenContext, _validate_lexicon_resource
+from misaki.en._g2p import collapse_tokens, make_lookup_token
+from misaki.en._lexicon import (Lexicon, TokenContext,
+                                _validate_lexicon_resource)
 from misaki.en._tokenization import TokenGroup, retokenize
 from misaki.token import MToken, MTokenFeatures
 
@@ -36,12 +37,34 @@ def test_mtoken_rating_field():
 def test_merge_tokens_ratings():
     tk1 = MToken("a", "DT", " ", rating=4)  # Default is_head is True
     tk2 = MToken("b", "NN", "", rating=3, features=MTokenFeatures(is_head=False))
-    merged = merge_tokens([tk1, tk2])
+
+    merged = make_lookup_token([tk1, tk2])
+    assert merged.phonemes is None
     assert merged.rating == 3
 
     tk3 = MToken("c", "NN", "", rating=None, features=MTokenFeatures(is_head=False))
-    merged_none = merge_tokens([tk1, tk3])
+    merged_none = make_lookup_token([tk1, tk3])
     assert merged_none.rating is None
+
+    tks = [
+        MToken("x", "NN", "", phonemes="ks", rating=4),
+        MToken("y", "NN", "", phonemes=None, rating=5),
+    ]
+    collapsed = collapse_tokens(tks, unk="❓")
+    assert collapsed.phonemes == "ks❓"
+    assert collapsed.rating == 4
+
+    # Test inserted-space behavior
+    tka = MToken("hello", "NN", " ", phonemes="həlˈO")
+    tkb = MToken(
+        "world",
+        "NN",
+        "",
+        phonemes="wˈɜɹld",
+        features=MTokenFeatures(prespace=True, is_head=False),
+    )
+    merged_space = collapse_tokens([tka, tkb], unk="❓")
+    assert merged_space.phonemes == "həlˈO wˈɜɹld"
 
 
 def test_lexicon_special_cases():
@@ -75,7 +98,9 @@ def test_lexicon_validation_failures():
     with pytest.raises(ValueError, match="Invalid symbol '❓' in plain pronunciation"):
         _validate_lexicon_resource({"word": "❓"}, "test", frozenset(["æ"]))
     with pytest.raises(ValueError, match="Invalid symbol '❓' in variant 'DEFAULT'"):
-        _validate_lexicon_resource({"word": {"DEFAULT": "❓"}}, "test", frozenset(["æ"]))
+        _validate_lexicon_resource(
+            {"word": {"DEFAULT": "❓"}}, "test", frozenset(["æ"])
+        )
 
 
 def test_retokenize_groups():
@@ -203,3 +228,23 @@ def test_e2e_regressions():
     # 6. Punctuation and whitespace preservation
     ph, _ = g2p("hi, there!")
     assert ph == "hˈI, ðˈɛɹ!"
+
+
+def test_g2p_vowel_initial_compound_fallback():
+    class VowelFallback:
+        def __call__(self, token):
+            assert token.text == "xyzab-def"
+            return "ˈæks", 1
+
+    g2p_mock = en.G2P(fallback=VowelFallback())
+    ph, tks_out = g2p_mock("to xyzab-def")
+
+    assert "tʊ" in ph
+    assert "ˈæks" in ph
+
+    found = False
+    for tk in tks_out:
+        if "xyzab" in tk.text:
+            assert tk.rating == 1
+            found = True
+    assert found
