@@ -660,15 +660,45 @@ class FallbackNetwork:
 
 
 class G2P:
-    def __init__(self, version=None, trf=False, british=False, fallback=None, unk="❓"):
+    """English grapheme-to-phoneme converter.
+
+    The converter uses either spaCy's small English pipeline or transformer
+    pipeline for tokenization and part-of-speech tagging. The selected spaCy
+    model must already be installed; this class does not download models at
+    runtime.
+
+    Args:
+        version: Optional G2P version setting.
+        trf: Selects the spaCy pipeline. When False, uses
+            ``en_core_web_sm``. When True, uses ``en_core_web_trf``.
+        british: Whether to use the British English lexicon.
+        fallback: Fallback used for unresolved tokens. When None, fallback is
+            disabled and unresolved tokens use the ``unk`` marker.
+        unk: Marker emitted for unresolved tokens when no fallback is
+            available.
+
+    Raises:
+        RuntimeError: If the selected spaCy model is not installed.
+    """
+
+    def __init__(
+        self,
+        version=None,
+        trf=False,
+        british=False,
+        fallback=None,
+        unk="❓",
+    ):
         self.version = version
         self.british = british
+
         name = f"en_core_web_{'trf' if trf else 'sm'}"
         if not spacy.util.is_package(name):
             raise RuntimeError(
-                f"Selected spaCy model {name!r} must be installed before constructing G2P. "
-                "Please install it first."
+                f"Selected spaCy model {name!r} must be installed before "
+                "constructing G2P. Please install it first."
             )
+
         components = ["transformer" if trf else "tok2vec", "tagger"]
         self.nlp = spacy.load(name, enable=components)
         self.lexicon = Lexicon(british)

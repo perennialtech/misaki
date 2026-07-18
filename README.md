@@ -13,10 +13,6 @@ You can run this in one cell on [Google Colab](https://colab.research.google.com
 
 from misaki import en
 
-# trf=False selects the small spaCy pipeline.
-# fallback=None disables fallback, so unresolved tokens use the `unk` marker.
-# G2P requires the selected spaCy model to be installed and never downloads it at runtime.
-# (Note: trf=True requires an installed en_core_web_trf package).
 g2p = en.G2P(trf=False, british=False, fallback=None)
 
 text = '[Misaki](/misˈɑki/) is a G2P engine designed for [Kokoro](/kˈOkəɹO/) models.'
