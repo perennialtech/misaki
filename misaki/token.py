@@ -12,6 +12,7 @@ class MToken:
     phonemes: Optional[str] = None
     start_ts: Optional[float] = None
     end_ts: Optional[float] = None
+    rating: Optional[int] = None
 
     class Underscore(addict.Dict):
         def __getattr__(self, key):

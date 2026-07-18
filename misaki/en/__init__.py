@@ -7,10 +7,9 @@ from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import spacy
-import torch
 from num2words import num2words
-from transformers import BartForConditionalGeneration
 
+from ..en_phonemes import GB, US_V2, finalize_english_phonemes
 from ..token import MToken
 from . import data
 
@@ -18,7 +17,8 @@ from . import data
 def merge_tokens(tokens: List[MToken], unk: Optional[str] = None) -> MToken:
     stress = {tk._.stress for tk in tokens if tk._.stress is not None}
     currency = {tk._.currency for tk in tokens if tk._.currency is not None}
-    rating = {tk._.rating for tk in tokens}
+    ratings = {tk.rating for tk in tokens}
+    merged_rating = None if None in ratings else min(ratings)
     if unk is None:
         phonemes = None
     else:
@@ -43,14 +43,16 @@ def merge_tokens(tokens: List[MToken], unk: Optional[str] = None) -> MToken:
         phonemes=phonemes,
         start_ts=tokens[0].start_ts,
         end_ts=tokens[-1].end_ts,
+        rating=merged_rating,
         _=MToken.Underscore(
             is_head=tokens[0]._.is_head,
             alias=None,
             stress=list(stress)[0] if len(stress) == 1 else None,
             currency=max(currency) if currency else None,
-            num_flags="".join(sorted({c for tk in tokens for c in tk._.num_flags})),
+            num_flags="".join(
+                sorted({c for tk in tokens for c in (tk._.num_flags or "")})
+            ),
             prespace=tokens[0]._.prespace,
-            rating=None if None in rating else min(rating),
         ),
     )
 
@@ -116,8 +118,6 @@ ADD_SYMBOLS = {".": "dot"}
 SPOKEN_SYMBOLS = {"/": ("slash", 2)}
 SYMBOLS = {"%": "percent", "&": "and", "+": "plus", "@": "at"}
 
-US_VOCAB = frozenset("AIOWYbdfhijklmnpstuvwzæðŋɑɔəɛɜɡɪɹɾʃʊʌʒʤʧˈˌθᵊᵻʔ")  # ɐ
-GB_VOCAB = frozenset("AIQWYabdfhijklmnpstuvwzðŋɑɒɔəɛɜɡɪɹʃʊʌʒʤʧˈˌːθᵊ")  # ɐ
 
 STRESSES = "ˌˈ"
 PRIMARY_STRESS = STRESSES[1]
@@ -195,7 +195,7 @@ class Lexicon:
         assert all(
             isinstance(v, str) or isinstance(v, dict) for v in self.golds.values()
         )
-        vocab = GB_VOCAB if british else US_VOCAB
+        vocab = GB if british else US_V2
         for vs in self.golds.values():
             if isinstance(vs, str):
                 assert all(c in vocab for c in vs), vs
@@ -611,7 +611,7 @@ class Lexicon:
             )
         elif Lexicon.is_number(word, tk._.is_head):
             ps, rating = self.get_number(
-                word, tk._.currency, tk._.is_head, tk._.num_flags
+                word, tk._.currency, tk._.is_head, tk._.num_flags or ""
             )
             return apply_stress(ps, tk._.stress), rating
         elif not all(ord(c) in LEXICON_ORDS for c in word):
@@ -625,6 +625,10 @@ class Lexicon:
 
 class FallbackNetwork:
     def __init__(self, british):
+        import torch
+        from transformers import BartForConditionalGeneration
+
+        self.torch = torch
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model = BartForConditionalGeneration.from_pretrained(
             "PeterReid/graphemes_to_phonemes_en_" + ("gb" if british else "us")
@@ -645,11 +649,11 @@ class FallbackNetwork:
         return "".join([self.token_to_phoneme.get(t, "") for t in tokens if t > 3])
 
     def __call__(self, input_token):
-        input_ids = torch.tensor(
+        input_ids = self.torch.tensor(
             [self.graphemes_to_tokens(input_token.text)], device=self.device
         )
 
-        with torch.no_grad():
+        with self.torch.no_grad():
             generated_ids = self.model.generate(input_ids=input_ids)
         output_text = self.tokens_to_phonemes(generated_ids[0].tolist())
         return (output_text, 1)
@@ -661,11 +665,14 @@ class G2P:
         self.british = british
         name = f"en_core_web_{'trf' if trf else 'sm'}"
         if not spacy.util.is_package(name):
-            spacy.cli.download(name)
+            raise RuntimeError(
+                f"Selected spaCy model {name!r} must be installed before constructing G2P. "
+                "Please install it first."
+            )
         components = ["transformer" if trf else "tok2vec", "tagger"]
         self.nlp = spacy.load(name, enable=components)
         self.lexicon = Lexicon(british)
-        self.fallback = fallback if fallback else FallbackNetwork(british)
+        self.fallback = fallback
         self.unk = unk
 
     @staticmethod
@@ -731,7 +738,7 @@ class G2P:
                 elif v.startswith("/"):
                     mutable_tokens[j]._.is_head = i == 0
                     mutable_tokens[j].phonemes = v.lstrip("/") if i == 0 else ""
-                    mutable_tokens[j]._.rating = 5
+                    mutable_tokens[j].rating = 5
                 # elif v.startswith('['):
                 #     mutable_tokens[j]._.alias = v.lstrip('[') if i == 0 else ''
                 elif v.startswith("#"):
@@ -778,10 +785,10 @@ class G2P:
                 elif tk.tag == "$" and tk.text in CURRENCIES:
                     currency = tk.text
                     tk.phonemes = ""
-                    tk._.rating = 4
+                    tk.rating = 4
                 elif tk.tag == ":" and tk.text in ("-", "–"):
                     tk.phonemes = "—"
-                    tk._.rating = 3
+                    tk.rating = 3
                 elif (
                     tk.text not in SPOKEN_SYMBOLS
                     and tk.tag in PUNCT_TAGS
@@ -790,7 +797,7 @@ class G2P:
                     tk.phonemes = PUNCT_TAG_PHONEMES.get(
                         tk.tag, "".join(c for c in tk.text if c in PUNCTS)
                     )
-                    tk._.rating = 4
+                    tk.rating = 4
                     # if not tk.phonemes:
                     #     print('❌', 'TODO:PUNCT', tk.text)
                 elif currency is not None:
@@ -858,10 +865,10 @@ class G2P:
             if tk.phonemes is None:
                 if i == len(tokens) - 1 and tk.text in NON_QUOTE_PUNCTS:
                     tk.phonemes = tk.text
-                    tk._.rating = 3
+                    tk.rating = 3
                 elif all(c in SUBTOKEN_JUNKS for c in tk.text):
                     tk.phonemes = ""
-                    tk._.rating = 3
+                    tk.rating = 3
             elif i > 0:
                 tk._.prespace = prespace
         if prespace:
@@ -911,7 +918,7 @@ class G2P:
                 ps, rating = (None, None) if tk is None else self.lexicon(tk, ctx)
                 if ps is not None:
                     w[left].phonemes = ps
-                    w[left]._.rating = rating
+                    w[left].rating = rating
                     for x in w[left + 1 : right]:
                         x.phonemes = ""
                         x.rating = rating
@@ -926,29 +933,30 @@ class G2P:
                     if tk.phonemes is None:
                         if all(c in SUBTOKEN_JUNKS for c in tk.text):
                             tk.phonemes = ""
-                            tk._.rating = 3
+                            tk.rating = 3
                         elif self.fallback is not None:
                             should_fallback = True
                             break
                     left = 0
             if should_fallback:
                 tk = merge_tokens(w)
-                w[0].phonemes, w[0]._.rating = self.fallback(tk)
+                w[0].phonemes, w[0].rating = self.fallback(tk)
                 for j in range(1, len(w)):
                     w[j].phonemes = ""
-                    w[j]._.rating = w[0]._.rating
+                    w[j].rating = w[0].rating
             else:
                 G2P.resolve_tokens(w)
         tokens = [
             merge_tokens(tk, unk=self.unk) if isinstance(tk, list) else tk
             for tk in tokens
         ]
-        if self.version != "2.0":
-            for tk in tokens:
-                if tk.phonemes:
-                    tk.phonemes = tk.phonemes.replace("ɾ", "T").replace("ʔ", "t")
+        for tk in tokens:
+            if tk.phonemes is not None:
+                tk.phonemes = finalize_english_phonemes(tk.phonemes, self.version)
+            else:
+                tk.phonemes = self.unk
         result = "".join(
-            (self.unk if tk.phonemes is None else tk.phonemes) + tk.whitespace
+            (tk.phonemes if tk.phonemes is not None else "") + tk.whitespace
             for tk in tokens
         )
         return result, tokens

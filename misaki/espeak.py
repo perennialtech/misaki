@@ -39,9 +39,8 @@ class EspeakFallback:
         key=lambda kv: -len(kv[0]),
     )
 
-    def __init__(self, british, version=None):
+    def __init__(self, british):
         self.british = british
-        self.version = version
         self.backend = phonemizer.backend.EspeakBackend(
             language=f"en-{'gb' if british else 'us'}",
             preserve_punctuation=True,
@@ -68,8 +67,6 @@ class EspeakFallback:
             ps = ps.replace("ɪə", "iə")
             ps = ps.replace("ː", "")
         ps = ps.replace("o", "ɔ")  # for espeak < 1.52
-        if self.version != "2.0":
-            ps = ps.replace("ɾ", "T").replace("ʔ", "t")
         return ps.replace("^", ""), 2
 
 

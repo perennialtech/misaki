@@ -13,13 +13,24 @@ You can run this in one cell on [Google Colab](https://colab.research.google.com
 
 from misaki import en
 
-g2p = en.G2P(trf=False, british=False, fallback=None) # no transformer, American English
+# trf=False selects the small spaCy pipeline.
+# fallback=None disables fallback, so unresolved tokens use the `unk` marker.
+# G2P requires the selected spaCy model to be installed and never downloads it at runtime.
+# (Note: trf=True requires an installed en_core_web_trf package).
+g2p = en.G2P(trf=False, british=False, fallback=None)
 
 text = '[Misaki](/misˈɑki/) is a G2P engine designed for [Kokoro](/kˈOkəɹO/) models.'
 
 phonemes, tokens = g2p(text)
 
 print(phonemes) # misˈɑki ɪz ə ʤˈitəpˈi ˈɛnʤən dəzˈInd fɔɹ kˈOkəɹO mˈɑdᵊlz.
+```
+
+To explicitly fallback to the neural network fallback:
+
+```py
+fallback = en.FallbackNetwork(british=False)
+g2p = en.G2P(trf=False, british=False, fallback=fallback)
 ```
 
 To fallback to espeak:
@@ -34,7 +45,8 @@ from misaki import en, espeak
 
 fallback = espeak.EspeakFallback(british=False) # en-us
 
-g2p = en.G2P(trf=False, british=False, fallback=fallback) # no transformer, American English
+# We construct G2P with version="2.0" because the output example contains v2 ɾ.
+g2p = en.G2P(version="2.0", trf=False, british=False, fallback=fallback)
 
 text = 'Now outofdictionary words are handled by espeak.'
 

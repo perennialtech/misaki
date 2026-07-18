@@ -1,8 +1,13 @@
 # Misaki English phonemes
 
-This document describes the English phoneme symbols emitted by Misaki 0.9.4.
+This document describes the English phoneme symbols emitted by the current Misaki English output implementation.
 
-Misaki's English inventory is version-dependent. Counts below exclude punctuation, whitespace, empty phoneme strings, the default unknown marker `❓`, and explicit user overrides such as `[word](/customphones/)`.
+Misaki's English inventory is version-dependent. The `version` values discussed in this document refer to phoneme output-format versions, not to Misaki package versions. Counts below apply to the inventory produced by Misaki's English lexicon, transformations, and bundled English adapters. They explicitly exclude:
+
+- Punctuation and whitespace
+- Empty phoneme strings and the configured unknown marker
+- Explicit user phoneme overrides
+- Arbitrary output returned by caller-provided custom fallbacks
 
 The practical English output inventory is:
 
@@ -14,7 +19,7 @@ The practical English output inventory is:
 | British                                         |    46 | `a Q ɒ ː`                |
 | Union across English dialects and versions      |    52 | `æ O ᵻ T ɾ ʔ a Q ɒ ː`    |
 
-Important implementation note: `ɐ` is not currently included in the `US_VOCAB` or `GB_VOCAB` constants, but English special cases do emit it for weak function words such as `a`, `an`, and weak `am`. This document counts `ɐ` as a shared practical output symbol.
+Internal validation inventories include `ɐ`. Bundled eSpeak conversion maps eSpeak `ɐ` to Misaki `ə`, while English lexical special cases emit Misaki `ɐ`. This document counts `ɐ` as a shared practical output symbol.
 
 The symbols are intended as input tokens for neural networks. Some are IPA symbols, some are merged clusters, and some are Misaki-specific aliases.
 
@@ -112,27 +117,15 @@ Other non-phone output behavior:
 
 ### Inventory validation sets
 
-These sets describe practical English output, not only the `US_VOCAB` and `GB_VOCAB` constants.
+These sets describe practical English output.
 
 ```py
-SHARED_ENGLISH_OUTPUT = frozenset(
-    "AIWY"
-    "bdfhijklmnpstuvwz"
-    "ðŋɑɔəɛɜɡɪɹʃʊʌʒʤʧˈˌθᵊɐ"
-)
-
-US_DEFAULT_OR_LEGACY_ONLY = frozenset("æOᵻT")
-US_V2_ONLY = frozenset("æOᵻɾʔ")
-GB_ONLY = frozenset("aQɒː")
-
-US_DEFAULT_OR_LEGACY = SHARED_ENGLISH_OUTPUT | US_DEFAULT_OR_LEGACY_ONLY
-US_V2 = SHARED_ENGLISH_OUTPUT | US_V2_ONLY
-GB = SHARED_ENGLISH_OUTPUT | GB_ONLY
-ENGLISH_UNION = (
-    SHARED_ENGLISH_OUTPUT
-    | US_DEFAULT_OR_LEGACY_ONLY
-    | US_V2_ONLY
-    | GB_ONLY
+from misaki.en_phonemes import (
+    ENGLISH_UNION,
+    GB,
+    SHARED_ENGLISH_OUTPUT,
+    US_DEFAULT_OR_LEGACY,
+    US_V2,
 )
 
 assert len(SHARED_ENGLISH_OUTPUT) == 42
@@ -176,7 +169,7 @@ E2M_ENGLISH = sorted(
 )
 
 
-def english_from_espeak(ps, british, version=None):
+def english_from_espeak(ps, british):
     for old, new in E2M_ENGLISH:
         ps = ps.replace(old, new)
 
@@ -196,16 +189,16 @@ def english_from_espeak(ps, british, version=None):
     # For eSpeak versions before 1.52.
     ps = ps.replace("o", "ɔ")
 
-    if version != "2.0":
-        ps = ps.replace("ɾ", "T").replace("ʔ", "t")
-
     return ps.replace("^", "")
 
 
 espeak_ps = "mˈɜːt^ʃəntʃˌɪp"
+from misaki.en_phonemes import finalize_english_phonemes
 
 assert english_from_espeak(espeak_ps, british=False) == "mˈɜɹʧəntʃˌɪp"
 assert english_from_espeak(espeak_ps, british=True) == "mˈɜːʧəntʃˌɪp"
+assert finalize_english_phonemes("mˈɜɹʧəntʃˌɪp", version="2.0") == "mˈɜɹʧəntʃˌɪp"
+assert finalize_english_phonemes("ɾʔ", version=None) == "Tt"
 ```
 
 Note that English `EspeakFallback` maps eSpeak `ɐ` to Misaki `ə`, while the English lexicon's own special cases can emit Misaki `ɐ`.
