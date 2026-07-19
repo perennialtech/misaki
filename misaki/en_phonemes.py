@@ -1,4 +1,5 @@
 SHARED_ENGLISH_OUTPUT = frozenset("AIWYbdfhijklmnpstuvwzðŋɑɔəɛɜɡɪɹʃʊʌʒʤʧˈˌθᵊɐ")
+ENGLISH_OUTPUT_PUNCTUATION = frozenset(';:,.!?—…"“”()')
 
 US_DEFAULT_OR_LEGACY_ONLY = frozenset("æOᵻT")
 US_V2_ONLY = frozenset("æOᵻɾʔ")

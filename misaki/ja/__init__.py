@@ -1,7 +1,5 @@
 from typing import List, Optional, Tuple
 
-import pyopenjtalk
-
 from ..token import MToken
 
 M2P = {
@@ -295,10 +293,15 @@ class JAG2P:
         self.version = version
         self.unk = unk
         self.cutlet = None
+        self.pyopenjtalk = None
         if version == "cutlet":
             from .cutlet import Cutlet
 
             self.cutlet = Cutlet()
+        else:
+            import pyopenjtalk
+
+            self.pyopenjtalk = pyopenjtalk
 
     @staticmethod
     def pron2moras(pron: str) -> List[str]:
@@ -318,7 +321,7 @@ class JAG2P:
         tokens = []
         last_a, _last_p = 0, ""
         acc, mcount = None, 0
-        for word in pyopenjtalk.run_frontend(text):
+        for word in self.pyopenjtalk.run_frontend(text):
             pron, mora_size = word["pron"], word["mora_size"]
             moras = []
             if mora_size > 0:

@@ -6,17 +6,8 @@ https://github.com/kyubyong/g2pK
 import os
 import re
 
-import nltk
 from jamo import h2j
-from nltk.corpus import cmudict
 
-# For further info. about cmu dict, consult http://www.speech.cs.cmu.edu/cgi-bin/cmudict.
-try:
-    nltk.data.find("corpora/cmudict.zip")
-except LookupError:
-    nltk.download("cmudict")
-
-from .english import convert_eng
 from .numerals import convert_num
 from .regular import link1, link2, link4
 from .special import (balb, consonant_ui, jamo, josa_ui, jyeo, modifying_rieul,
@@ -29,8 +20,6 @@ class G2p(object):
     def __init__(self):
         self.mecab = self.get_mecab()
         self.table = parse_table()
-
-        self.cmu = cmudict.dict()  # for English
 
         self.rule2text = get_rule_id2text()  # for comments of main rules
         self.idioms_path = os.path.join(
@@ -54,9 +43,6 @@ class G2p(object):
         inp: input string.
         descriptive: not used.
         verbose: boolean.
-
-        >>> idioms("지금 mp3 파일을 다운받고 있어요")
-        지금 엠피쓰리 파일을 다운받고 있어요
         """
         out = string
 
@@ -79,48 +65,42 @@ class G2p(object):
         use_dict=True,
     ):
         """Main function
-        string: input string
+        string: Korean input string
         descriptive: boolean.
         verbose: boolean
         group_vowels: boolean. If True, the vowels of the identical sound are normalized.
         to_syl: boolean. If True, hangul letters or jamo are assembled to form syllables.
 
-        For example, given an input string "나의 친구가 mp3 file 3개를 다운받고 있다",
+        For example, given an input string "나의 친구가 3개를 받고 있다",
         STEP 1. idioms
-        -> 나의 친구가 엠피쓰리 file 3개를 다운받고 있다
+        -> 나의 친구가 3개를 받고 있다
 
-        STEP 2. English to Hangul
-        -> 나의 친구가 엠피쓰리 파일 3개를 다운받고 있다
+        STEP 2. annotate
+        -> 나의/J 친구가 3개/B를 받고 있다
 
-        STEP 3. annotate
-        -> 나의/J 친구가 엠피쓰리 파일 3개/B를 다운받고 있다
+        STEP 3. Spell out arabic numbers
+        -> 나의/J 친구가 세개/B를 받고 있다
 
-        STEP 4. Spell out arabic numbers
-        -> 나의/J 친구가 엠피쓰리 파일 세개/B를 다운받고 있다
+        STEP 4. decompose
+        -> 나의/J 친구가 세개/B를 받고 있다
 
-        STEP 5. decompose
-        -> 나의/J 친구가 엠피쓰리 파일 세개/B를 다운받고 있다
-
-        STEP 6-9. Hangul
-        -> 나의 친구가 엠피쓰리 파일 세개를 다운받꼬 읻따
+        STEP 5-8. Apply Korean pronunciation rules, linking, and composition
+        -> 나의 친구가 세개를 받꼬 읻따
         """
         # 1. idioms
         string = self.idioms(string, descriptive, verbose)
 
-        # 2 English to Hangul
-        string = convert_eng(string, self.cmu)
-
-        # 3. annotate
+        # 2. annotate
         if use_dict:
             string = annotate(string, self.mecab)
 
-        # 4. Spell out arabic numbers
+        # 3. Spell out arabic numbers
         string = convert_num(string)
 
-        # 5. decompose
+        # 4. decompose
         inp = h2j(string)
 
-        # 6. special
+        # 5. special
         for func in (
             jyeo,
             ye,
@@ -138,7 +118,7 @@ class G2p(object):
             inp = func(inp, descriptive, verbose)
         inp = re.sub("/[PJEB]", "", inp)
 
-        # 7. regular table: batchim + onset
+        # 6. regular table: batchim + onset
         for str1, str2, rule_ids in self.table:
             _inp = inp
             inp = re.sub(str1, str2, inp)
@@ -149,11 +129,11 @@ class G2p(object):
             #     rule = ""
             # gloss(verbose, inp, _inp, rule)
 
-        # 8 link
+        # 7. link
         for func in (link1, link2, link4):  # remove link3
             inp = func(inp, descriptive, verbose)
 
-        # 9. postprocessing
+        # 8. postprocessing
         if group_vowels:
             inp = group(inp)
 
@@ -166,4 +146,4 @@ class G2p(object):
 
 if __name__ == "__main__":
     g2p = G2p()
-    g2p("나의 친구가 mp3 file 3개를 다운받고 있다")
+    g2p("나의 친구가 세 개를 받고 있다")

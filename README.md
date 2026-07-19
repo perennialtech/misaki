@@ -81,6 +81,31 @@ g2p = en.G2P(fallback=MyFallback())
 
 Any returned phonemes pass through final version conversion, such as swapping `ɾ` and `T`, but custom fallbacks may return arbitrary symbols outside the regular English inventory if desired.
 
+### Multilingual English-phone approximations
+
+The multilingual pipeline combines the English, Mandarin Chinese, Japanese, and Korean frontends while projecting every pronunciation into the American `version=None` [EN_PHONES](EN_PHONES.md) inventory. Install its direct dependencies together with the small English spaCy model:
+
+```bash
+uv sync --no-dev --extra multilingual --group en-sm
+```
+
+Use `--group en-trf` instead of `--group en-sm` and pass `trf=True` for the transformer English pipeline. The bundled neural English fallback additionally requires `--extra en-fallback`.
+
+```py
+from misaki import MultilingualG2P
+
+g2p = MultilingualG2P(default_han_language="zh")
+phonemes, tokens = g2p("English, 中文, 日本語, 한국어.")
+print(phonemes)
+assert tokens is None
+```
+
+`default_han_language` is required and accepts only `"zh"` or `"ja"`. Bare Han follows that configured language because strings such as `世界` do not identify whether a Mandarin or Japanese reading is intended. Kana and Japanese-specific marks identify their contiguous Han/Kana/digit span as Japanese. Hangul identifies Korean, but adjacent Han is routed separately rather than treated as Korean Hanja. Here, Chinese support specifically means Mandarin Chinese rather than arbitrary Chinese varieties.
+
+The output is always American `version=None` English phones. CJK pronunciation is an English-model-compatible approximation, not native pronunciation: Mandarin tone and Japanese pitch accent are omitted, Japanese timing is approximated, and native Korean aspiration, tenseness, vowel contrasts, coarticulation, and prosody are reduced. `tokens` is intentionally `None` because the language frontends do not share an aligned token model.
+
+Mixed English/Korean text must use `MultilingualG2P`; `KOG2P` accepts Korean text only.
+
 To use eSpeak as the fallback, synchronize its optional dependencies together with the small English pipeline:
 
 ```bash

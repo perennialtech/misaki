@@ -1,5 +1,6 @@
-from misaki.en_phonemes import (ENGLISH_UNION, GB, GB_ONLY,
-                                SHARED_ENGLISH_OUTPUT, US_DEFAULT_OR_LEGACY,
+from misaki.en_phonemes import (ENGLISH_OUTPUT_PUNCTUATION, ENGLISH_UNION, GB,
+                                GB_ONLY, SHARED_ENGLISH_OUTPUT,
+                                US_DEFAULT_OR_LEGACY,
                                 US_DEFAULT_OR_LEGACY_ONLY, US_V2, US_V2_ONLY,
                                 english_from_espeak, finalize_english_phonemes)
 
@@ -10,6 +11,10 @@ def test_inventory_counts():
     assert len(US_V2) == 47
     assert len(GB) == 46
     assert len(ENGLISH_UNION) == 52
+
+
+def test_english_output_punctuation():
+    assert ENGLISH_OUTPUT_PUNCTUATION == frozenset(';:,.!?—…"“”()')
 
 
 def test_inventory_differences():

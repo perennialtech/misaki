@@ -5,8 +5,6 @@ import cn2an
 import jieba
 from pypinyin import Style, lazy_pinyin
 
-from .transcription import pinyin_to_ipa
-
 
 class ZHG2P:
     def __init__(self, version=None, unk="❓", en_callable=None):
@@ -33,6 +31,8 @@ class ZHG2P:
 
     @staticmethod
     def py2ipa(py):
+        from .transcription import pinyin_to_ipa
+
         return "".join(ZHG2P.retone(p) for p in pinyin_to_ipa(py)[0])
 
     @staticmethod
