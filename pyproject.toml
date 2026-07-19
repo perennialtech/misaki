@@ -48,6 +48,7 @@ multilingual = [
     "jamo",
     "python-mecab-ko",
     "jieba",
+    "ordered-set",
     "pypinyin",
     "cn2an",
     "pypinyin-dict",
