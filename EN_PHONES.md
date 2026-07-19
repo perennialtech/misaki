@@ -144,3 +144,15 @@ British output adds the following symbols to the shared inventory.
 ## Punctuation and other output
 
 English G2P output can contain punctuation alongside phonemes:
+
+```txt
+; : , . ! ? — … " “ ” ( )
+```
+
+Punctuation is not part of the phoneme inventory.
+
+Whitespace from the token stream is preserved. Some input tokens can intentionally produce an empty pronunciation, such as a currency symbol absorbed into a following number.
+
+Unresolved tokens emit `❓` by default. Applications can select a different unknown marker.
+
+Explicit pronunciation annotations can inject arbitrary strings. For example, `[word](/custom/)` emits the supplied pronunciation rather than restricting it to the standard English inventory.
