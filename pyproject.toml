@@ -14,52 +14,68 @@ classifiers = [
 ]
 requires-python = ">=3.11, <3.15"
 dependencies = [
-    "regex>=2026.5",
+    "regex>=2026.7",
 ]
 
 [project.optional-dependencies]
-en = ["numpy", "num2words", "spacy<4"]
+en = [
+    "num2words>=0.5",
+    "numpy>=2.4",
+    "spacy>=3.8,<4",
+]
 
-en-fallback = ["torch", "transformers"]
+en-fallback = [
+    "torch>=2.13",
+    "transformers>=5.14",
+]
 
-espeak = ["phonemizer-fork", "espeakng-loader"]
+espeak = [
+    "espeakng-loader>=0.2",
+    "phonemizer-fork>=3.3",
+]
 
 ja = [
-    "fugashi[unidic-lite]",
-    "jaconv",
-    "mojimoji",
-    "pyopenjtalk",
+    "fugashi[unidic-lite]>=1.5",
+    "jaconv>=0.5",
+    "mojimoji>=0.0",
+    "pyopenjtalk>=0.4",
 ]
 
 ko = [
-    "jamo",
-    "python-mecab-ko",
+    "jamo>=0.4",
+    "python-mecab-ko>=1.3",
 ]
 
-zh = ["jieba", "ordered-set", "pypinyin", "cn2an", "pypinyin-dict"]
+zh = [
+    "cn2an>=0.5",
+    "jieba>=0.42",
+    "ordered-set>=4.1",
+    "pypinyin>=0.55",
+    "pypinyin-dict>=0.9",
+]
 
 multilingual = [
-    "numpy",
-    "num2words",
-    "spacy<4",
-    "fugashi[unidic-lite]",
-    "jaconv",
-    "mojimoji",
-    "jamo",
-    "python-mecab-ko",
-    "jieba",
-    "ordered-set",
-    "pypinyin",
-    "cn2an",
-    "pypinyin-dict",
+    "cn2an>=0.5",
+    "fugashi[unidic-lite]>=1.5",
+    "jaconv>=0.5",
+    "jamo>=0.4",
+    "jieba>=0.42",
+    "mojimoji>=0.0",
+    "num2words>=0.5",
+    "numpy>=2.4",
+    "ordered-set>=4.1",
+    "pypinyin>=0.55",
+    "pypinyin-dict>=0.9",
+    "python-mecab-ko>=1.3",
+    "spacy>=3.8,<4",
 ]
 
 ui = [
-    "gradio>=6.19.0",
+    "gradio>=6.20",
 ]
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling>=1.31"]
 build-backend = "hatchling.build"
 
 [tool.hatch.version]
@@ -73,11 +89,11 @@ en-trf = [
     "en-core-web-trf==3.8.0",
 ]
 dev = [
-    "basedpyright>=1.39.9",
-    "black>=24.8.0",
-    "isort>=5.13.2",
-    "pytest>=8.3.5",
-    "ruff>=0.15.20",
+    "basedpyright>=1.39",
+    "black>=26.5",
+    "isort>=8.0",
+    "pytest>=9.1",
+    "ruff>=0.15",
 ]
 
 [tool.uv.sources]
