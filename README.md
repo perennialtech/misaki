@@ -2,19 +2,30 @@
 
 Misaki is a G2P engine designed for [Kokoro](https://github.com/hexgrad/kokoro) models.
 
-Hosted demo: https://hf.co/spaces/hexgrad/Misaki-G2P
+Hosted demo: <https://hf.co/spaces/hexgrad/Misaki-G2P>
 
-### English Usage
+### English usage
 
 Misaki checks for the selected model but does not download it at runtime.
-- `G2P(trf=False)` requires explicitly installed `en_core_web_sm`.
-- `G2P(trf=True)` requires explicitly installed `en_core_web_trf`.
 
-You can run this in one cell on [Google Colab](https://colab.research.google.com/):
+- `G2P(trf=False)` requires the `en-sm` dependency group.
+- `G2P(trf=True)` requires the `en-trf` dependency group.
+
+From a source checkout, synchronize the small English pipeline:
+
+```bash
+uv sync --no-dev --extra en --group en-sm
+```
+
+For the transformer pipeline instead:
+
+```bash
+uv sync --no-dev --extra en --group en-trf
+```
+
+Create an `example.py` file:
 
 ```py
-!pip install -q "misaki[en]" https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl
-
 from misaki import en
 
 g2p = en.G2P(trf=False, british=False, fallback=None)
@@ -23,55 +34,76 @@ text = '[Misaki](/misˈɑki/) is a G2P engine designed for [Kokoro](/kˈOkəɹO/
 
 phonemes, tokens = g2p(text)
 
-print(phonemes) # misˈɑki ɪz ɐ ʤˈitəpˈi ˈɛnʤən dəzˈInd fɔɹ kˈOkəɹO mˈɑdᵊlz.
+print(phonemes)  # misˈɑki ɪz ɐ ʤˈitəpˈi ˈɛnʤən dəzˈInd fɔɹ kˈOkəɹO mˈɑdᵊlz.
 ```
 
-To explicitly fallback to the neural network fallback:
+Run it inside the synchronized project environment:
+
+```bash
+uv run --no-sync python example.py
+```
+
+To explicitly use the neural network fallback, synchronize its optional dependencies together with the small English pipeline:
+
+```bash
+uv sync --no-dev \
+    --extra en,en-fallback \
+    --group en-sm
+```
+
+Then configure the fallback:
 
 ```py
-!pip install -q "misaki[en,en-fallback]" https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl
-
 from misaki import en
 
 fallback = en.FallbackNetwork(british=False)
 g2p = en.G2P(trf=False, british=False, fallback=fallback)
 ```
 
-### Custom Fallback
+### Custom fallback
 
-You can provide a custom fallback for unresolved words. A fallback is called with an `MToken` and must return a `Tuple[Optional[str], Optional[int]]` containing the phonemes (or `None` if unresolved) and an integer rating. For unresolved compounds, the fallback receives one synthetic `MToken` representing the entire group.
+You can provide a custom fallback for unresolved words. A fallback is called with an `MToken` and must return a `Tuple[Optional[str], Optional[int]]` containing the phonemes, or `None` if unresolved, and an integer rating. For unresolved compounds, the fallback receives one synthetic `MToken` representing the entire group.
 
 ```py
 from misaki import en
 from misaki.token import MToken
 
+
 class MyFallback:
     def __call__(self, token: MToken):
         if token.text == "unresolved-compound":
-             return "kəmˈpWnd", 5
-        return None, None # Leaves the token unresolved, emitting the unk marker
+            return "kəmˈpWnd", 5
+        return None, None  # Leaves the token unresolved, emitting the unk marker.
+
 
 g2p = en.G2P(fallback=MyFallback())
 ```
-Any returned phonemes pass through final version conversion (e.g., swapping `ɾ` and `T`), but custom fallbacks may return arbitrary symbols outside the regular English inventory if desired.
 
-To fallback to espeak:
+Any returned phonemes pass through final version conversion, such as swapping `ɾ` and `T`, but custom fallbacks may return arbitrary symbols outside the regular English inventory if desired.
+
+To use eSpeak as the fallback, synchronize its optional dependencies together with the small English pipeline:
+
+```bash
+uv sync --no-dev \
+    --extra en,espeak \
+    --group en-sm
+```
+
+Then configure the fallback:
 
 ```py
-!pip install -q "misaki[en,espeak]" https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl
-
 from misaki import en, espeak
 
-fallback = espeak.EspeakFallback(british=False) # en-us
+fallback = espeak.EspeakFallback(british=False)  # en-us
 
 # We construct G2P with version="2.0" because the output example contains v2 ɾ.
 g2p = en.G2P(version="2.0", trf=False, british=False, fallback=fallback)
 
-text = 'Now outofdictionary words are handled by espeak.'
+text = "Now outofdictionary words are handled by espeak."
 
 phonemes, tokens = g2p(text)
 
-print(phonemes) # nˈW Wɾɑfdˈɪkʃənˌɛɹi wˈɜɹdz ɑɹ hˈændəld bI ˈispik.
+print(phonemes)  # nˈW Wɾɑfdˈɪkʃənˌɛɹi wˈɜɹdz ɑɹ hˈændəld bI ˈispik.
 ```
 
 ### English
@@ -87,7 +119,7 @@ The second gen Japanese tokenizer now uses pyopenjtalk with full unidic, enablin
 - https://github.com/r9y9/pyopenjtalk
 - https://github.com/polm/unidic-py
 
-The first gen Japanese tokenizer mainly relies on cutlet => fugashi => mecab => unidic-lite, with each being a wrapper around the next. Deep gratitute to [@Respaired](https://github.com/Respaired) for helping me learn the ropes of Japanese tokenization before any Kokoro model had started training.
+The first gen Japanese tokenizer mainly relies on cutlet => fugashi => mecab => unidic-lite, with each being a wrapper around the next. Deep gratitude to [@Respaired](https://github.com/Respaired) for helping me learn the ropes of Japanese tokenization before any Kokoro model had started training.
 
 - https://github.com/polm/cutlet
 - https://github.com/polm/fugashi
@@ -96,7 +128,7 @@ The first gen Japanese tokenizer mainly relies on cutlet => fugashi => mecab => 
 
 ### Korean
 
-The Korean tokenizer is copied from 5Hyeons's g2pkc fork of Kyubyong's widely used g2pK library. Deep gratitute to [@5Hyeons](https://github.com/5Hyeons) for kindly helping with Korean and extending the original code by [@Kyubyong](https://github.com/Kyubyong).
+The Korean tokenizer is copied from 5Hyeons's g2pkc fork of Kyubyong's widely used g2pK library. Deep gratitude to [@5Hyeons](https://github.com/5Hyeons) for kindly helping with Korean and extending the original code by [@Kyubyong](https://github.com/Kyubyong).
 
 - https://github.com/5Hyeons/StyleTTS2/tree/vocos/g2pK/g2pkc
 - https://github.com/Kyubyong/g2pK
@@ -119,7 +151,7 @@ The first gen Chinese tokenizer uses jieba to cut, pypinyin, and pinyin-to-ipa.
 - [ ] Fallbacks: Train seq2seq fallback models on dictionaries using [this notebook](https://github.com/Kyubyong/nlp_made_easy/blob/master/PyTorch%20seq2seq%20template%20based%20on%20the%20g2p%20task.ipynb).
 - [ ] Homographs: Escalate hard words like `axes bass bow lead tear wind` using BERT contextual word embeddings (CWEs) and logistic regression (LR) models (`nn.Linear` followed by sigmoid) as described in [this paper](https://assets.amazon.science/c3/db/23ca18d7450d8dbb5b80a11fcdd3/homograph-disambiguation-with-contextual-word-embeddings-for-tts-systems.pdf). Assuming `trf=True`, BERT CWEs can be accessed via `doc._.trf_data`, see [en.py#L479](https://github.com/hexgrad/misaki/blob/main/misaki/en.py#L479). Per-word LR models can be trained on [WikipediaHomographData](https://github.com/google-research-datasets/WikipediaHomographData), [llama-hd-dataset](https://github.com/facebookresearch/llama-hd-dataset), and LLM-generated data.
 - [x] More languages: Add `ko.py`, `ja.py`, `zh.py`.
-- [x] Per-language pip installs
+- [x] Per-language optional dependencies
 
 ### Acknowledgements
 

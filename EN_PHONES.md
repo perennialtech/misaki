@@ -1,215 +1,146 @@
-# Misaki English phonemes
+# Misaki English phoneme symbols
 
-This document describes the English phoneme symbols emitted by the current Misaki English output implementation.
+Misaki emits a compact, model-oriented phoneme alphabet for English. Many symbols are IPA, while several are merged phones or Misaki-specific aliases.
 
-## Architecture and Pipeline
+This document describes the standard inventory produced by Misaki's English lexicon and pronunciation rules. Output-format versions refer to phoneme formats, not Misaki package versions.
 
-The English implementation operates as a staged pipeline:
+## Inventory
 
-1. **Preprocessing:** An optional callable parses explicit pronunciation overrides and feature flags. The built-in preprocessor extracts `[text](/phonemes/)` annotations and applies `#...#` number flags.
-2. **Tokenization:** Text is tokenized and tagged using spaCy (`en_core_web_sm` or `en_core_web_trf`).
-3. **MToken Conversion:** spaCy tokens are converted into Misaki's `MToken` representation.
-4. **Grouping:** Tokens are split into pronunciation-oriented subtokens (separating punctuation, camel case, etc.) and grouped into `TokenGroup`s.
-5. **Right-to-Left Resolution:** Groups are processed right-to-left. This allows lexical weak forms (e.g. `to`, `the`) to depend on whether the following pronunciation begins with a vowel (`TokenContext.future_vowel`). It also gives the preceding token information about following functional structure (`TokenContext.future_to`).
-6. **Lexical Lookup:** Within a group, spans eagerly resolve right-to-left using English rules and dictionaries.
-7. **Fallback:** If an unresolved component requires fallback in a multi-token group, fallback is applied once to the complete, uncollapsed group text.
-8. **Collapse:** Each `TokenGroup` is collapsed into exactly one final output `MToken`.
-9. **Finalization:** The `MToken`'s internal English phonemes pass through `finalize_english_phonemes` for output-version conversion.
-10. **Concatenation:** Final phonemes and preserved whitespace are concatenated into the output string.
+| Output mode                                 | Count | Mode-specific symbols |
+| ------------------------------------------- | ----: | --------------------- |
+| Shared English inventory                    |    42 | None                  |
+| American, default or legacy, `version=None` |    46 | `æ O ᵻ T`             |
+| American, v2, `version="2.0"`               |    47 | `æ O ᵻ ɾ ʔ`           |
+| British                                     |    46 | `a Q ɒ ː`             |
+| Union across English dialects and versions  |    52 | `æ O ᵻ T ɾ ʔ a Q ɒ ː` |
 
-### MToken and Group Invariants
-
-The `MToken.phonemes` property indicates resolution state:
-- `None`: Resolution has not succeeded (leaves token unresolved). Unresolved tokens later become the configured `unk` marker.
-- `""`: The token was intentionally made silent or absorbed.
-- Nonempty string: The token has a resolved pronunciation.
-
-Every `TokenGroup` is guaranteed to produce exactly one output `MToken`. If fallback is applied to a multi-token group, the complete group is combined into one synthetic token before calling the fallback. This prevents producing disconnected fragments for compound words.
-
-### Phoneme Ratings
-
-Output origins receive a confidence `rating`. When multiple tokens are collapsed, the resulting group token keeps the minimum rating of its components (unrated if any component is unrated). Custom fallbacks may return arbitrary integer ratings.
-
-Conventional bundled levels:
-- `5`: Explicit user pronunciation overrides.
-- `4`: High-confidence lexical or rule-derived output (gold dictionary, special cases).
-- `3`: Lower-confidence dictionary or structural output (silver dictionary, plain letter spelling).
-- `2`: Bundled `EspeakFallback` output.
-- `1`: Bundled fallback network output.
-- `None`: Unrated output.
-
-Misaki's English inventory is version-dependent. The `version` values discussed in this document refer to phoneme output-format versions, not to Misaki package versions. Counts below apply to the inventory produced by Misaki's English lexicon, transformations, and bundled English adapters. They explicitly exclude:
+These counts exclude:
 
 - Punctuation and whitespace
-- Empty phoneme strings and the configured unknown marker
-- Explicit user phoneme overrides
-- Arbitrary output returned by caller-provided custom fallbacks
+- Empty pronunciations
+- The configured unknown marker
+- Explicit pronunciation overrides
+- Symbols returned by caller-provided custom fallbacks
 
-The practical English output inventory is:
+Custom fallbacks and explicit overrides are not restricted to this inventory.
 
-| Mode                                           | Count | Dialect-specific symbols |
-| ---------------------------------------------- | ----: | ------------------------ |
-| Shared English output                          |    42 | None                     |
-| American, default or legacy, `version is None` |    46 | `æ O ᵻ T`                |
-| American, v2, `version == "2.0"`               |    47 | `æ O ᵻ ɾ ʔ`              |
-| British                                        |    46 | `a Q ɒ ː`                |
-| Union across English dialects and versions     |    52 | `æ O ᵻ T ɾ ʔ a Q ɒ ː`    |
+## Reading Misaki phonemes
 
-Internal validation inventories include `ɐ`. Bundled eSpeak conversion maps eSpeak `ɐ` to Misaki `ə`, while English lexical special cases emit Misaki `ɐ`. This document counts `ɐ` as a shared practical output symbol.
+Phonemes within a word are written without separators. Stress marks appear before the stressed vowel, as in `jˈɛs`.
 
-The symbols are intended as input tokens for neural networks. Some are IPA symbols, some are merged clusters, and some are Misaki-specific aliases.
+Some symbols require special attention:
 
-### Shared English output symbols (42)
+- `A I O Q W Y` are vowel aliases, not ordinary Latin letters.
+- `ʤ` and `ʧ` are single merged symbols representing `dʒ` and `tʃ`.
+- `ɡ` is IPA `U+0261`, not ASCII `g`.
+- `T` is Misaki's legacy American flap symbol.
+- `ᵊ` is a small schwa used for a muted or syllabic reduction.
 
-#### Stress marks (2)
+## Shared English symbols
 
-- `ˈ`: Primary stress.
-- `ˌ`: Secondary stress.
+The following 42 symbols are shared by American and British output.
 
-#### IPA-style consonants (22)
+### Stress marks
 
-- `b d f h k l m n p s t v w z`: Common consonants, mostly used as expected.
-- `j`: The "y" sound, as in `yes => jˈɛs`.
-- `ɡ`: Hard "g" sound, as in `get => ɡɛt`. This is `U+0261`, not the ASCII letter `g`.
-- `ŋ`: The "ng" sound, as in `sung => sˈʌŋ`.
-- `ɹ`: English "r" sound, as in `red => ɹˈɛd`.
-- `ʃ`: The "sh" sound, as in `shin => ʃˈɪn`.
-- `ʒ`: The "zh" sound, as in `Asia => ˈAʒə`.
-- `ð`: Voiced "th" sound, as in `than => ðən`.
-- `θ`: Voiceless "th" sound, as in `thin => θˈɪn`.
+| Symbol | Meaning          |
+| ------ | ---------------- |
+| `ˈ`    | Primary stress   |
+| `ˌ`    | Secondary stress |
 
-#### Merged consonant clusters (2)
+### Consonants
 
-- `ʤ`: The "j" or "dg" sound, merged from `dʒ`, as in `jump => ʤˈʌmp` or `lunge => lˈʌnʤ`.
-- `ʧ`: The "ch" sound, merged from `tʃ`, as in `chump => ʧˈʌmp` or `lunch => lˈʌnʧ`.
+| Symbols                       | Meaning or example                          |
+| ----------------------------- | ------------------------------------------- |
+| `b d f h k l m n p s t v w z` | Common consonants, used largely as expected |
+| `j`                           | "y" in `yes`, `jˈɛs`                        |
+| `ɡ`                           | Hard "g" in `get`, `ɡɛt`                    |
+| `ŋ`                           | "ng" in `sung`, `sˈʌŋ`                      |
+| `ɹ`                           | English "r" in `red`, `ɹˈɛd`                |
+| `ʃ`                           | "sh" in `shin`, `ʃˈɪn`                      |
+| `ʒ`                           | "zh" in `Asia`, `ˈAʒə`                      |
+| `ð`                           | Voiced "th" in `than`, `ðən`                |
+| `θ`                           | Voiceless "th" in `thin`, `θˈɪn`            |
 
-#### IPA-style vowels (10)
+### Merged consonants
 
-- `ə`: Schwa, a common reduced vowel.
-- `i`: As in `easy => ˈizi`.
-- `u`: As in `flu => flˈu`.
-- `ɑ`: As in `spa => spˈɑ`.
-- `ɔ`: As in `all => ˈɔl`.
-- `ɛ`: As in `bed => bˈɛd`.
-- `ɜ`: As in American `her => hɜɹ`.
-- `ɪ`: As in `brick => bɹˈɪk`.
-- `ʊ`: As in `wood => wˈʊd`.
-- `ʌ`: As in `sun => sˈʌn`.
+| Symbol | Approximate IPA | Example          |
+| ------ | --------------- | ---------------- |
+| `ʤ`    | `dʒ`            | `jump`, `ʤˈʌmp`  |
+| `ʧ`    | `tʃ`            | `lunch`, `lˈʌnʧ` |
 
-#### Diphthong vowels shared by both dialects (4)
+### Vowels
 
-- `A`: The "ay" vowel, expands roughly to IPA `eɪ`, as in `hey => hˈA`.
-- `I`: The "eye" vowel, expands roughly to IPA `aɪ`, as in `high => hˈI`.
-- `W`: The "ow" vowel, expands roughly to IPA `aʊ`, as in `how => hˌW`.
-- `Y`: The "oy" vowel, expands roughly to IPA `ɔɪ`, as in `soy => sˈY`.
+| Symbol | Example                          |
+| ------ | -------------------------------- |
+| `ə`    | Schwa, a common unstressed vowel |
+| `i`    | `easy`, `ˈizi`                   |
+| `u`    | `flu`, `flˈu`                    |
+| `ɑ`    | `spa`, `spˈɑ`                    |
+| `ɔ`    | `all`, `ˈɔl`                     |
+| `ɛ`    | `bed`, `bˈɛd`                    |
+| `ɜ`    | American `her`, `hɜɹ`            |
+| `ɪ`    | `brick`, `bɹˈɪk`                 |
+| `ʊ`    | `wood`, `wˈʊd`                   |
+| `ʌ`    | `sun`, `sˈʌn`                    |
 
-#### Reduced or custom vowels (2)
+### Diphthong aliases
 
-- `ᵊ`: Small schwa, a muted version of `ə`, as in `pixel => pˈɪksᵊl`.
-- `ɐ`: Weak reduced vowel emitted by English special cases, as in determiner `a => ɐ`, `an => ɐn`, and weak `am => ɐm`.
+| Symbol | Approximate IPA | Example       |
+| ------ | --------------- | ------------- |
+| `A`    | `eɪ`            | `hey`, `hˈA`  |
+| `I`    | `aɪ`            | `high`, `hˈI` |
+| `W`    | `aʊ`            | `how`, `hˌW`  |
+| `Y`    | `ɔɪ`            | `soy`, `sˈY`  |
 
-### American-only symbols
+### Reduced vowels
 
-American output differs depending on `version`. Expected version configuration is exactly `None` and `"2.0"`.
+| Symbol | Meaning or example                                           |
+| ------ | ------------------------------------------------------------ |
+| `ᵊ`    | Small schwa, as in `pixel`, `pˈɪksᵊl`                        |
+| `ɐ`    | Weak reduced vowel, as in determiner `a`, `ɐ`, or `an`, `ɐn` |
 
-#### American symbols in all English versions (3)
+## American symbols
 
-- `æ`: TRAP vowel, as in `ash => ˈæʃ`.
-- `O`: American GOAT vowel, expands roughly to IPA `oʊ`, as in `go => ɡˈO`.
-- `ᵻ`: Reduced vowel between `ə` and `ɪ`, often used in some suffixes, as in `boxes => bˈɑksᵻz`.
+American output adds the following symbols to the shared inventory.
 
-#### American default or legacy symbol, `version is None` (1)
+### Symbols used in all American formats
 
-- `T`: Legacy Misaki flap token. In default mode, final English output maps `ɾ` to `T`, so American `butter`-like flaps are represented with `T`.
+| Symbol | Meaning or example                                          |
+| ------ | ----------------------------------------------------------- |
+| `æ`    | TRAP vowel, as in `ash`, `ˈæʃ`                              |
+| `O`    | GOAT vowel, approximately `oʊ`, as in `go`, `ɡˈO`           |
+| `ᵻ`    | Reduced vowel between `ə` and `ɪ`, as in `boxes`, `bˈɑksᵻz` |
 
-#### American v2 symbols, `version == "2.0"` (2)
+### Default or legacy format
 
-- `ɾ`: Alveolar flap, as in American `butter => bˈʌɾəɹ`.
-- `ʔ`: Glottal stop. This is preserved in v2 output and folded to `t` in default or legacy output.
+With `version=None`, American flaps use:
 
-### British-only symbols (4)
+| Symbol | Meaning                                                           |
+| ------ | ----------------------------------------------------------------- |
+| `T`    | Legacy Misaki flap symbol, corresponding approximately to IPA `ɾ` |
 
-- `a`: British TRAP vowel, as in `ash => ˈaʃ`.
-- `Q`: British GOAT vowel, expands roughly to IPA `əʊ`, as in `go => ɡˈQ`.
-- `ɒ`: British LOT vowel, as in `on => ˌɒn`.
-- `ː`: Vowel length mark, as in British `or => ɔː`.
+Glottal stops are represented as `t` in this format.
 
-### Punctuation and non-phone output
+### Version 2.0 format
 
-The English G2P result can include punctuation symbols. These are not phonemes and are not counted in the phoneme inventory.
+With `version="2.0"`, American output can additionally contain:
 
-Punctuation that can be emitted includes:
+| Symbol | Meaning                                 |
+| ------ | --------------------------------------- |
+| `ɾ`    | Alveolar flap, as in `butter`, `bˈʌɾəɹ` |
+| `ʔ`    | Glottal stop                            |
 
-```txt
-; : , . ! ? — … " “ ” ( )
-```
+## British symbols
 
-Other non-phone output behavior:
+British output adds the following symbols to the shared inventory.
 
-- Whitespace is preserved from the token stream.
-- Some tokens can produce an empty phoneme string, for example currency signs before numbers.
-- Unknown tokens use `❓` by default, controlled by `unk`.
-- Explicit user overrides such as `[word](/phonemes/)` can inject arbitrary strings, so strict inventory guarantees only apply when such overrides are excluded.
+| Symbol | Meaning or example                                        |
+| ------ | --------------------------------------------------------- |
+| `a`    | British TRAP vowel, as in `ash`, `ˈaʃ`                    |
+| `Q`    | British GOAT vowel, approximately `əʊ`, as in `go`, `ɡˈQ` |
+| `ɒ`    | British LOT vowel, as in `on`, `ˌɒn`                      |
+| `ː`    | Vowel length mark, as in `or`, `ɔː`                       |
 
-### Inventory validation sets
+## Punctuation and other output
 
-These sets describe practical English output.
-
-```py
-from misaki.en_phonemes import (
-    ENGLISH_UNION,
-    GB,
-    SHARED_ENGLISH_OUTPUT,
-    US_DEFAULT_OR_LEGACY,
-    US_V2,
-)
-
-assert len(SHARED_ENGLISH_OUTPUT) == 42
-assert len(US_DEFAULT_OR_LEGACY) == 46
-assert len(US_V2) == 47
-assert len(GB) == 46
-assert len(ENGLISH_UNION) == 52
-```
-
-### From eSpeak to Misaki for English fallback
-
-`EspeakFallback` uses an English-specific conversion loop provided by `english_from_espeak`. The replacement order matters, longest eSpeak strings are replaced first.
-
-```py
-from misaki.en_phonemes import english_from_espeak, finalize_english_phonemes
-
-espeak_ps = "mˈɜːt^ʃəntʃˌɪp"
-assert english_from_espeak(espeak_ps, british=False) == "mˈɜɹʧəntʃˌɪp"
-assert english_from_espeak(espeak_ps, british=True) == "mˈɜːʧəntʃˌɪp"
-assert finalize_english_phonemes("mˈɜɹʧəntʃˌɪp", version="2.0") == "mˈɜɹʧəntʃˌɪp"
-assert finalize_english_phonemes("ɾʔ", version=None) == "Tt"
-```
-
-Note that English `EspeakFallback` maps eSpeak `ɐ` to Misaki `ə`, while the English lexicon's own special cases can emit Misaki `ɐ`.
-
-### Generic eSpeak G2P note
-
-`EspeakG2P` is used for most non-English and non-CJK languages. It has a separate mapping and, in `version == "2.0"`, can introduce non-English nasal-vowel placeholder symbols such as `B C D E V U X Z`. Those are not part of the English inventory documented here.
-
-### From Misaki to eSpeak-like IPA
-
-This helper reverses the main English aliases approximately.
-
-```py
-def to_espeak(ps):
-    # Optionally, insert tie characters between the two replacement characters.
-    ps = ps.replace("ʤ", "dʒ").replace("ʧ", "tʃ")
-
-    ps = ps.replace("A", "eɪ")
-    ps = ps.replace("I", "aɪ")
-    ps = ps.replace("Y", "ɔɪ")
-    ps = ps.replace("O", "oʊ")
-    ps = ps.replace("Q", "əʊ")
-    ps = ps.replace("W", "aʊ")
-
-    ps = ps.replace("T", "ɾ")
-    ps = ps.replace("ᵊ", "ə")
-    ps = ps.replace("ɐ", "ə")
-
-    return ps
-```
+English G2P output can contain punctuation alongside phonemes:

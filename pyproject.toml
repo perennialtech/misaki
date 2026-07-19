@@ -22,7 +22,7 @@ en = ["numpy", "num2words", "spacy<4"]
 en-fallback = ["torch", "transformers"]
 espeak = ["phonemizer-fork", "espeakng-loader"]
 ja = ["fugashi", "jaconv", "mojimoji", "unidic", "pyopenjtalk"]
-ko = [ "jamo", "mecab", "nltk"]
+ko = ["jamo", "mecab", "nltk"]
 zh = ["jieba", "ordered-set", "pypinyin", "cn2an", "pypinyin-dict"]
 ui = [
     "gradio>=6.19.0",
@@ -36,6 +36,12 @@ build-backend = "hatchling.build"
 path = "misaki/__init__.py"
 
 [dependency-groups]
+en-sm = [
+    "en-core-web-sm==3.8.0",
+]
+en-trf = [
+    "en-core-web-trf==3.8.0",
+]
 dev = [
     "basedpyright>=1.39.9",
     "black>=24.8.0",
@@ -43,3 +49,7 @@ dev = [
     "pytest>=8.3.5",
     "ruff>=0.15.20",
 ]
+
+[tool.uv.sources]
+en-core-web-sm = { url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl" }
+en-core-web-trf = { url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_trf-3.8.0/en_core_web_trf-3.8.0-py3-none-any.whl" }
