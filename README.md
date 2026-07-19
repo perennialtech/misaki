@@ -37,6 +37,24 @@ fallback = en.FallbackNetwork(british=False)
 g2p = en.G2P(trf=False, british=False, fallback=fallback)
 ```
 
+### Custom Fallback
+
+You can provide a custom fallback for unresolved words. A fallback is called with an `MToken` and must return a `Tuple[Optional[str], Optional[int]]` containing the phonemes (or `None` if unresolved) and an integer rating. For unresolved compounds, the fallback receives one synthetic `MToken` representing the entire group.
+
+```py
+from misaki import en
+from misaki.token import MToken
+
+class MyFallback:
+    def __call__(self, token: MToken):
+        if token.text == "unresolved-compound":
+             return "kəmˈpWnd", 5
+        return None, None # Leaves the token unresolved, emitting the unk marker
+
+g2p = en.G2P(fallback=MyFallback())
+```
+Any returned phonemes pass through final version conversion (e.g., swapping `ɾ` and `T`), but custom fallbacks may return arbitrary symbols outside the regular English inventory if desired.
+
 To fallback to espeak:
 
 ```py

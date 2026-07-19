@@ -113,6 +113,38 @@ def test_retokenize_groups():
     assert len(out) == 2
 
 
+def test_custom_preprocessor():
+    g2p = en.G2P(fallback=None)
+
+    called_custom = False
+
+    def custom_preprocess(t):
+        nonlocal called_custom
+        called_custom = True
+        return "hello world", ["hello", "world"], {1: 0.5, 0: -0.5, 2: 2}
+
+    ph, tks = g2p("doesn't matter", preprocess_fn=custom_preprocess)
+    assert called_custom
+    assert "həlˈO wˌɜɹld" in ph or "həlˈO" in ph
+
+    # passing None skips preprocessing
+    ph2, tks2 = g2p("[hello](/xyz/)", preprocess_fn=None)
+    assert "xyz" not in ph2
+
+    # invalid value raises exception
+    def bad_preprocessor(t):
+        return t, ["hello"], {0: [1, 2, 3]}
+
+    with pytest.raises(TypeError, match="Invalid feature value"):
+        g2p("hello", preprocess_fn=bad_preprocessor)
+
+    def bool_preprocessor(t):
+        return t, ["hello"], {0: True}
+
+    with pytest.raises(TypeError, match="Invalid feature value"):
+        g2p("hello", preprocess_fn=bool_preprocessor)
+
+
 class FakeFallback:
     def __init__(self, ps_return="fAk", rating_return=1):
         self.ps_return = ps_return
@@ -158,6 +190,25 @@ def test_g2p_falsey_fallback():
     ph, tks = g2p("asdfghjkl")
     assert fb.called
     assert "fOls" in ph
+
+
+def test_g2p_none_returning_fallback():
+    class NoneFallback:
+        def __call__(self, token):
+            return None, None
+
+    g2p = en.G2P(fallback=NoneFallback(), unk="NOPE")
+
+    # Single token unresolved
+    ph1, tks1 = g2p("xyzab")
+    assert "NOPE" in ph1
+    assert tks1[0].phonemes == "NOPE"
+    assert tks1[0].rating is None
+
+    # Compound unresolved
+    ph2, tks2 = g2p("xyzab-def")
+    assert "NOPE" in ph2
+    assert tks2[0].rating is None
 
 
 def test_g2p_lexical_rating():
@@ -248,3 +299,19 @@ def test_g2p_vowel_initial_compound_fallback():
             assert tk.rating == 1
             found = True
     assert found
+
+
+def test_group_resolution_contract():
+    class CompoundFallback:
+        def __call__(self, token):
+            assert token.text == "unresolved-compound"
+            return "kəmˈpWnd", 1
+
+    g2p = en.G2P(fallback=CompoundFallback())
+
+    ph, tokens = g2p("unresolved-compound")
+    # This compound should become a single final token
+    assert len(tokens) == 1
+    assert tokens[0].text == "unresolved-compound"
+    assert tokens[0].phonemes == "kəmˈpWnd"
+    assert tokens[0].rating == 1

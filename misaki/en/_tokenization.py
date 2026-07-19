@@ -1,11 +1,15 @@
 import re
 from dataclasses import dataclass
-from typing import List, Tuple
+from typing import Callable, Dict, List, Tuple, Union
 
 import numpy as np
 import spacy
 
 from ..token import MToken, MTokenFeatures
+
+FeatureValue = Union[str, int, float]
+PreprocessorResult = Tuple[str, List[str], Dict[int, FeatureValue]]
+Preprocessor = Callable[[str], PreprocessorResult]
 from ._lexicon import (CURRENCIES, PUNCT_TAG_PHONEMES, PUNCT_TAGS, PUNCTS,
                        SPOKEN_SYMBOLS, is_digit)
 
@@ -31,7 +35,7 @@ class TokenGroup:
     tokens: Tuple[MToken, ...]
 
 
-def preprocess(text):
+def preprocess(text: str) -> PreprocessorResult:
     result = ""
     tokens = []
     features = {}
@@ -81,7 +85,14 @@ def tokenize(nlp, text: str, tokens, features) -> List[MToken]:
         tokens, [tk.text for tk in mutable_tokens]
     )
     for k, v in features.items():
-        assert isinstance(v, str) or isinstance(v, int) or v in (0.5, -0.5), (k, v)
+        if not (
+            isinstance(v, str)
+            or (isinstance(v, int) and not isinstance(v, bool))
+            or v in (0.5, -0.5)
+        ):
+            raise TypeError(
+                f"Invalid feature value for token {k}: {v!r}. Must be a string, integer, 0.5, or -0.5."
+            )
         for i, j in enumerate(np.where(align.y2x.data == k)[0]):
             if j >= len(mutable_tokens):
                 continue

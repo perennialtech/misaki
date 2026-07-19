@@ -8,6 +8,7 @@ from typing import Optional
 from num2words import num2words
 
 from ..en_phonemes import GB, US_V2
+from ..token import PronunciationResult
 from . import data
 
 DIPHTHONGS = frozenset("AIOQWYʤʧ")
@@ -161,7 +162,7 @@ class Lexicon:
             _validate_lexicon_resource(resource, "silver", vocab)
             self.silvers = Lexicon.grow_dictionary(resource)
 
-    def get_NNP(self, word):
+    def get_NNP(self, word) -> PronunciationResult:
         ps = [self.golds.get(c.upper()) for c in word if c.isalpha()]
         if None in ps:
             return None, None
@@ -169,7 +170,7 @@ class Lexicon:
         ps = ps.rsplit(SECONDARY_STRESS, 1)
         return PRIMARY_STRESS.join(ps), 3
 
-    def get_special_case(self, word, tag, stress, ctx):
+    def get_special_case(self, word, tag, stress, ctx) -> PronunciationResult:
         if word in SPOKEN_SYMBOLS:
             alias, symbol_stress = SPOKEN_SYMBOLS[word]
             return self.lookup(alias, None, symbol_stress, ctx)
@@ -241,7 +242,7 @@ class Lexicon:
             return True
         return word[1:] == word[1:].upper()
 
-    def lookup(self, word, tag, stress, ctx):
+    def lookup(self, word, tag, stress, ctx) -> PronunciationResult:
         is_NNP = None
         if word == word.upper() and word not in self.golds:
             word = word.lower()
@@ -270,7 +271,7 @@ class Lexicon:
             return stem + ("ɪ" if self.british else "ᵻ") + "z"
         return stem + "z"
 
-    def stem_s(self, word, tag, stress, ctx):
+    def stem_s(self, word, tag, stress, ctx) -> PronunciationResult:
         if len(word) < 3 or not word.endswith("s"):
             return None, None
         if not word.endswith("ss") and self.is_known(word[:-1], tag):
@@ -306,7 +307,7 @@ class Lexicon:
             return stem[:-1] + "ɾᵻd"
         return stem + "ᵻd"
 
-    def stem_ed(self, word, tag, stress, ctx):
+    def stem_ed(self, word, tag, stress, ctx) -> PronunciationResult:
         if len(word) < 4 or not word.endswith("d"):
             return None, None
         if not word.endswith("dd") and self.is_known(word[:-1], tag):
@@ -333,7 +334,7 @@ class Lexicon:
             return stem[:-1] + "ɾɪŋ"
         return stem + "ɪŋ"
 
-    def stem_ing(self, word, tag, stress, ctx):
+    def stem_ing(self, word, tag, stress, ctx) -> PronunciationResult:
         if len(word) < 5 or not word.endswith("ing"):
             return None, None
         if len(word) > 5 and self.is_known(word[:-3], tag):
@@ -351,7 +352,7 @@ class Lexicon:
         stem, rating = self.lookup(stem, tag, stress, ctx)
         return self._ing(stem), rating
 
-    def get_word(self, word, tag, stress, ctx):
+    def get_word(self, word, tag, stress, ctx) -> PronunciationResult:
         ps, rating = self.get_special_case(word, tag, stress, ctx)
         if ps is not None:
             return ps, rating
@@ -400,7 +401,7 @@ class Lexicon:
         cents = word.split(".")[1]
         return len(cents) < 3 or set(cents) == {0}
 
-    def get_number(self, word, currency, is_head, num_flags):
+    def get_number(self, word, currency, is_head, num_flags) -> PronunciationResult:
         suffix = re.search(r"[a-z']+$", word)
         suffix = suffix.group() if suffix else None
         word = word[: -len(suffix)] if suffix else word
@@ -540,7 +541,7 @@ class Lexicon:
             for i, c in enumerate(word)
         )
 
-    def __call__(self, tk, ctx):
+    def __call__(self, tk, ctx) -> PronunciationResult:
         word = (
             (tk.text if tk.features.alias is None else tk.features.alias)
             .replace(chr(8216), "'")

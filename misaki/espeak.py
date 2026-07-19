@@ -6,6 +6,7 @@ import phonemizer
 from phonemizer.backend.espeak.wrapper import EspeakWrapper
 
 from .en_phonemes import english_from_espeak
+from .token import PronunciationResult
 
 # Set espeak-ng library path and espeak-ng-data
 EspeakWrapper.set_library(espeakng_loader.get_library_path())
@@ -24,7 +25,7 @@ class EspeakFallback:
             tie="^",
         )
 
-    def __call__(self, token):
+    def __call__(self, token) -> PronunciationResult:
         ps = self.backend.phonemize([token.text])
         if not ps:
             return None, None

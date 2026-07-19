@@ -2,6 +2,42 @@
 
 This document describes the English phoneme symbols emitted by the current Misaki English output implementation.
 
+## Architecture and Pipeline
+
+The English implementation operates as a staged pipeline:
+
+1. **Preprocessing:** An optional callable parses explicit pronunciation overrides and feature flags. The built-in preprocessor extracts `[text](/phonemes/)` annotations and applies `#...#` number flags.
+2. **Tokenization:** Text is tokenized and tagged using spaCy (`en_core_web_sm` or `en_core_web_trf`).
+3. **MToken Conversion:** spaCy tokens are converted into Misaki's `MToken` representation.
+4. **Grouping:** Tokens are split into pronunciation-oriented subtokens (separating punctuation, camel case, etc.) and grouped into `TokenGroup`s.
+5. **Right-to-Left Resolution:** Groups are processed right-to-left. This allows lexical weak forms (e.g. `to`, `the`) to depend on whether the following pronunciation begins with a vowel (`TokenContext.future_vowel`). It also gives the preceding token information about following functional structure (`TokenContext.future_to`).
+6. **Lexical Lookup:** Within a group, spans eagerly resolve right-to-left using English rules and dictionaries.
+7. **Fallback:** If an unresolved component requires fallback in a multi-token group, fallback is applied once to the complete, uncollapsed group text.
+8. **Collapse:** Each `TokenGroup` is collapsed into exactly one final output `MToken`.
+9. **Finalization:** The `MToken`'s internal English phonemes pass through `finalize_english_phonemes` for output-version conversion.
+10. **Concatenation:** Final phonemes and preserved whitespace are concatenated into the output string.
+
+### MToken and Group Invariants
+
+The `MToken.phonemes` property indicates resolution state:
+- `None`: Resolution has not succeeded (leaves token unresolved). Unresolved tokens later become the configured `unk` marker.
+- `""`: The token was intentionally made silent or absorbed.
+- Nonempty string: The token has a resolved pronunciation.
+
+Every `TokenGroup` is guaranteed to produce exactly one output `MToken`. If fallback is applied to a multi-token group, the complete group is combined into one synthetic token before calling the fallback. This prevents producing disconnected fragments for compound words.
+
+### Phoneme Ratings
+
+Output origins receive a confidence `rating`. When multiple tokens are collapsed, the resulting group token keeps the minimum rating of its components (unrated if any component is unrated). Custom fallbacks may return arbitrary integer ratings.
+
+Conventional bundled levels:
+- `5`: Explicit user pronunciation overrides.
+- `4`: High-confidence lexical or rule-derived output (gold dictionary, special cases).
+- `3`: Lower-confidence dictionary or structural output (silver dictionary, plain letter spelling).
+- `2`: Bundled `EspeakFallback` output.
+- `1`: Bundled fallback network output.
+- `None`: Unrated output.
+
 Misaki's English inventory is version-dependent. The `version` values discussed in this document refer to phoneme output-format versions, not to Misaki package versions. Counts below apply to the inventory produced by Misaki's English lexicon, transformations, and bundled English adapters. They explicitly exclude:
 
 - Punctuation and whitespace

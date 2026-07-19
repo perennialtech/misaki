@@ -3,11 +3,11 @@ from typing import List, Optional, Tuple
 import spacy
 
 from ..en_phonemes import finalize_english_phonemes
-from ..token import MToken, MTokenFeatures
+from ..token import MToken, MTokenFeatures, TokenFallback
 from ._lexicon import (CONSONANTS, NON_QUOTE_PUNCTS, PRIMARY_STRESS, VOWELS,
                        Lexicon, TokenContext, apply_stress, stress_weight)
-from ._tokenization import (SUBTOKEN_JUNKS, TokenGroup, preprocess, retokenize,
-                            tokenize)
+from ._tokenization import (SUBTOKEN_JUNKS, Preprocessor, TokenGroup,
+                            preprocess, retokenize, tokenize)
 
 
 def _merge_metadata(tokens: List[MToken]):
@@ -180,7 +180,7 @@ class G2P:
         version=None,
         trf=False,
         british=False,
-        fallback=None,
+        fallback: Optional[TokenFallback] = None,
         unk="❓",
     ):
         if version not in (None, "2.0"):
@@ -218,7 +218,7 @@ class G2P:
         self,
         group: TokenGroup,
         ctx: TokenContext,
-    ) -> TokenContext:
+    ) -> Tuple[MToken, TokenContext]:
         """
         Resolves a single TokenGroup right-to-left.
         - Lexical lookup greedily resolves the longest available right-bounded span.
@@ -233,7 +233,7 @@ class G2P:
             if tk.phonemes is None and self.fallback is not None:
                 tk.phonemes, tk.rating = self.fallback(tk)
             ctx = get_token_context(ctx, tk.phonemes, tk)
-            return ctx
+            return tk, ctx
 
         left, right = 0, len(w)
         should_fallback = False
@@ -279,25 +279,25 @@ class G2P:
         else:
             resolve_tokens(w)
 
-        return ctx
+        return collapse_tokens(w, unk=self.unk), ctx
 
-    def __call__(self, text: str, preprocess_fn=True) -> Tuple[str, List[MToken]]:
-        fn = preprocess if preprocess_fn is True else preprocess_fn
-        text, tokens, features = fn(text) if fn else (text, [], {})
+    def __call__(
+        self, text: str, preprocess_fn: Optional[Preprocessor] = preprocess
+    ) -> Tuple[str, List[MToken]]:
+        text, tokens, features = (
+            preprocess_fn(text) if preprocess_fn is not None else (text, [], {})
+        )
         tokens = tokenize(self.nlp, text, tokens, features)
         tokens = self.fold_left(tokens)
         token_groups = retokenize(tokens)
         ctx = TokenContext()
 
-        for group in reversed(token_groups):
-            ctx = self._resolve_group(group, ctx)
-
         final_tokens = []
-        for group in token_groups:
-            if len(group.tokens) > 1:
-                final_tokens.append(collapse_tokens(list(group.tokens), unk=self.unk))
-            else:
-                final_tokens.append(group.tokens[0])
+        for group in reversed(token_groups):
+            tk, ctx = self._resolve_group(group, ctx)
+            final_tokens.append(tk)
+
+        final_tokens.reverse()
 
         for tk in final_tokens:
             if tk.phonemes is not None:
