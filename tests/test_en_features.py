@@ -121,7 +121,7 @@ def test_custom_preprocessor():
     def custom_preprocess(t):
         nonlocal called_custom
         called_custom = True
-        return "hello world", ["hello", "world"], {1: 0.5, 0: -0.5, 2: 2}
+        return "hello world", ["hello", "world"], {0: 0.5, 1: -0.5, 2: 2}
 
     ph, tks = g2p("doesn't matter", preprocess_fn=custom_preprocess)
     assert called_custom
@@ -304,14 +304,14 @@ def test_g2p_vowel_initial_compound_fallback():
 def test_group_resolution_contract():
     class CompoundFallback:
         def __call__(self, token):
-            assert token.text == "unresolved-compound"
+            assert token.text == "xyzab-def"
             return "kəmˈpWnd", 1
 
     g2p = en.G2P(fallback=CompoundFallback())
 
-    ph, tokens = g2p("unresolved-compound")
+    ph, tokens = g2p("xyzab-def")
     # This compound should become a single final token
     assert len(tokens) == 1
-    assert tokens[0].text == "unresolved-compound"
+    assert tokens[0].text == "xyzab-def"
     assert tokens[0].phonemes == "kəmˈpWnd"
     assert tokens[0].rating == 1
