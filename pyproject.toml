@@ -24,6 +24,14 @@ en = [
     "spacy>=3.8,<4",
 ]
 
+en-sm = [
+    "en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl",
+]
+
+en-trf = [
+    "en-core-web-trf @ https://github.com/explosion/spacy-models/releases/download/en_core_web_trf-3.8.0/en_core_web_trf-3.8.0-py3-none-any.whl",
+]
+
 en-fallback = [
     "torch>=2.13",
     "transformers>=5.14",
@@ -78,16 +86,13 @@ ui = [
 requires = ["hatchling>=1.31"]
 build-backend = "hatchling.build"
 
+[tool.hatch.metadata]
+allow-direct-references = true
+
 [tool.hatch.version]
 path = "misaki/__init__.py"
 
 [dependency-groups]
-en-sm = [
-    "en-core-web-sm==3.8.0",
-]
-en-trf = [
-    "en-core-web-trf==3.8.0",
-]
 dev = [
     "basedpyright>=1.39",
     "black>=26.5",
@@ -95,7 +100,3 @@ dev = [
     "pytest>=9.1",
     "ruff>=0.15",
 ]
-
-[tool.uv.sources]
-en-core-web-sm = { url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl" }
-en-core-web-trf = { url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_trf-3.8.0/en_core_web_trf-3.8.0-py3-none-any.whl" }

@@ -8,19 +8,19 @@ Hosted demo: <https://hf.co/spaces/hexgrad/Misaki-G2P>
 
 Misaki checks for the selected model but does not download it at runtime.
 
-- `G2P(trf=False)` requires the `en-sm` dependency group.
-- `G2P(trf=True)` requires the `en-trf` dependency group.
+- `G2P(trf=False)` requires the `en-sm` extra.
+- `G2P(trf=True)` requires the `en-trf` extra.
 
 From a source checkout, synchronize the small English pipeline:
 
 ```bash
-uv sync --no-dev --extra en --group en-sm
+uv sync --no-dev --extra en,en-sm
 ```
 
 For the transformer pipeline instead:
 
 ```bash
-uv sync --no-dev --extra en --group en-trf
+uv sync --no-dev --extra en,en-trf
 ```
 
 Create an `example.py` file:
@@ -46,9 +46,7 @@ uv run --no-sync python example.py
 To explicitly use the neural network fallback, synchronize its optional dependencies together with the small English pipeline:
 
 ```bash
-uv sync --no-dev \
-    --extra en,en-fallback \
-    --group en-sm
+uv sync --no-dev --extra en,en-fallback,en-sm
 ```
 
 Then configure the fallback:
@@ -86,10 +84,10 @@ Any returned phonemes pass through final version conversion, such as swapping `É
 The multilingual pipeline combines the English, Mandarin Chinese, Japanese, and Korean frontends while projecting every pronunciation into the American `version=None` [EN_PHONES](EN_PHONES.md) inventory. Install its direct dependencies together with the small English spaCy model:
 
 ```bash
-uv sync --no-dev --extra multilingual --group en-sm
+uv sync --no-dev --extra multilingual,en-sm
 ```
 
-Use `--group en-trf` instead of `--group en-sm` and pass `trf=True` for the transformer English pipeline. The bundled neural English fallback additionally requires `--extra en-fallback`.
+Use `--extra en-trf` instead of `--extra en-sm` and pass `trf=True` for the transformer English pipeline. The bundled neural English fallback additionally requires `--extra en-fallback`. The eSpeak fallback requires `--extra espeak`.
 
 ```py
 from misaki import MultilingualG2P
@@ -109,9 +107,7 @@ Mixed English/Korean text must use `MultilingualG2P`; `KOG2P` accepts Korean tex
 To use eSpeak as the fallback, synchronize its optional dependencies together with the small English pipeline:
 
 ```bash
-uv sync --no-dev \
-    --extra en,espeak \
-    --group en-sm
+uv sync --no-dev --extra en,espeak,en-sm
 ```
 
 Then configure the fallback:

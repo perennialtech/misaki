@@ -1100,6 +1100,12 @@ en-fallback = [
     { name = "torch" },
     { name = "transformers" },
 ]
+en-sm = [
+    { name = "en-core-web-sm" },
+]
+en-trf = [
+    { name = "en-core-web-trf" },
+]
 espeak = [
     { name = "espeakng-loader" },
     { name = "phonemizer-fork" },
@@ -1149,17 +1155,13 @@ dev = [
     { name = "pytest" },
     { name = "ruff" },
 ]
-en-sm = [
-    { name = "en-core-web-sm" },
-]
-en-trf = [
-    { name = "en-core-web-trf" },
-]
 
 [package.metadata]
 requires-dist = [
     { name = "cn2an", marker = "extra == 'multilingual'", specifier = ">=0.5" },
     { name = "cn2an", marker = "extra == 'zh'", specifier = ">=0.5" },
+    { name = "en-core-web-sm", marker = "extra == 'en-sm'", url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl" },
+    { name = "en-core-web-trf", marker = "extra == 'en-trf'", url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_trf-3.8.0/en_core_web_trf-3.8.0-py3-none-any.whl" },
     { name = "espeakng-loader", marker = "extra == 'espeak'", specifier = ">=0.2" },
     { name = "fugashi", extras = ["unidic-lite"], marker = "extra == 'ja'", specifier = ">=1.5" },
     { name = "fugashi", extras = ["unidic-lite"], marker = "extra == 'multilingual'", specifier = ">=1.5" },
@@ -1192,7 +1194,7 @@ requires-dist = [
     { name = "torch", marker = "extra == 'en-fallback'", specifier = ">=2.13" },
     { name = "transformers", marker = "extra == 'en-fallback'", specifier = ">=5.14" },
 ]
-provides-extras = ["en", "en-fallback", "espeak", "ja", "ko", "multilingual", "ui", "zh"]
+provides-extras = ["en", "en-fallback", "en-sm", "en-trf", "espeak", "ja", "ko", "multilingual", "ui", "zh"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -1202,8 +1204,6 @@ dev = [
     { name = "pytest", specifier = ">=9.1" },
     { name = "ruff", specifier = ">=0.15" },
 ]
-en-sm = [{ name = "en-core-web-sm", url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl" }]
-en-trf = [{ name = "en-core-web-trf", url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_trf-3.8.0/en_core_web_trf-3.8.0-py3-none-any.whl" }]
 
 [[package]]
 name = "mojimoji"
