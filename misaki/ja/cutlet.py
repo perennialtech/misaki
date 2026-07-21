@@ -381,7 +381,7 @@ class Cutlet:
         assert not surface.isdigit(), surface
         if surface.isascii():
             return surface
-        if word.char_type == 3:  # symbol
+        if word.char_type == 3 or all(c in SYMBOLS for c in surface):  # symbol
             return "".join(SYMBOLS.get(c, c) for c in surface)
         elif word.char_type != 6:
             return ""  # TODO: silently fail

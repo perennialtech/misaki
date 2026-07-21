@@ -428,7 +428,13 @@ class Lexicon:
         return True
 
     def _read_number_year(self, result, word, currency, num_flags):
-        if result or len(word) != 4 or currency in CURRENCIES or not is_digit(word):
+        if (
+            result
+            or len(word) != 4
+            or currency in CURRENCIES
+            or not is_digit(word)
+            or word.startswith("0")
+        ):
             return False
         self._extend_number(
             result,
