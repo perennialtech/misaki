@@ -46,7 +46,6 @@ ja = [
     "fugashi[unidic-lite]>=1.5",
     "jaconv>=0.5",
     "mojimoji>=0.0",
-    "pyopenjtalk>=0.4",
 ]
 
 ko = [

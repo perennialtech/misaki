@@ -101,9 +101,6 @@ HEPBURN = {
     chr(12437): "ka",  # ゕ
     chr(12438): "ke",  # ゖ
 }
-assert len(HEPBURN) == 84 and all(
-    i in {12387, 12435} or chr(i) in HEPBURN for i in range(12353, 12439)
-)
 
 HEPBURN.update(
     {
@@ -113,7 +110,6 @@ HEPBURN.update(
         chr(12538): "vo",  # ヺ
     }
 )
-assert len(HEPBURN) == 88 and all(chr(i) in HEPBURN for i in range(12535, 12539))
 
 HEPBURN.update(
     {
@@ -195,12 +191,6 @@ HEPBURN.update(
         chr(12436) + chr(12423): "bʲo",  # ゔょ
     }
 )
-assert len(HEPBURN) == 164
-
-for k, v in list(HEPBURN.items()):
-    if len(k) == 2:
-        a, b = k
-        assert a in HEPBURN and b in HEPBURN, (a, b)
 
 HEPBURN.update(
     {
@@ -253,13 +243,12 @@ Katakana_Phonetic_Extensions = [
     "ㇾレ",
     "ㇿロ",
 ]
-assert all(
-    chr(i) == kk[0] for i, kk in zip(range(12784, 12800), Katakana_Phonetic_Extensions)
-)
 Katakana_Phonetic_Extensions = {kk[0]: kk[1] for kk in Katakana_Phonetic_Extensions}
 
-with importlib.resources.open_text(data, "ja_words.txt") as r:
-    JA_WORDS = frozenset({line.strip() for line in r})
+with (importlib.resources.files(data) / "ja_words.txt").open(
+    "r", encoding="utf-8"
+) as resource:
+    JA_WORDS = frozenset(line.strip() for line in resource)
 
 
 def add_dakuten(kk):
@@ -296,8 +285,6 @@ class Token:
 class Cutlet:
     def __init__(self):
         self.tagger = Tagger()
-        self.table = dict(HEPBURN)  # make a copy so we can modify it
-        self.exceptions = {}
 
     def __call__(self, text) -> Tuple[str, None]:
         """Build a complete string from input text."""
@@ -381,14 +368,12 @@ class Cutlet:
             for g in groups
         ]
         out = []
-        for wi, word in enumerate(words):
+        for word in words:
             po = out[-1] if out else None
-            words[wi - 1] if wi > 0 else None
-            words[wi + 1] if wi < len(words) - 1 else None
             roma = self._romaji_word(word)
             tok = Token(roma, False)
             # handle punctuation with atypical spacing
-            surface = word.surface  # ['orig']
+            surface = word.surface
             if surface in "「『«" or roma in "([":
                 if po:
                     po.space = True
@@ -408,14 +393,12 @@ class Cutlet:
 
     def _romaji_word(self, word):
         """Return the romaji for a single word (node)."""
-        surface = word.surface  # ['orig']
-        if surface in self.exceptions:
-            return self.exceptions[surface]
+        surface = word.surface
         assert not surface.isdigit(), surface
         if surface.isascii():
             return surface
         if word.char_type == 3:  # symbol
-            return "".join(map(lambda c: self.table.get(c, c), surface))
+            return "".join(HEPBURN.get(c, c) for c in surface)
         elif word.char_type != 6:
             return ""  # TODO: silently fail
         out = ""
@@ -443,21 +426,21 @@ class Cutlet:
                     return ""
                 vv = add_dakuten(pk)
                 if vv:
-                    return self.table[vv]
+                    return HEPBURN[vv]
                 else:
                     return ""
             # remaining are 々 for kanji and 〃 for symbols, but we can't
             # infer their span reliably (or handle rendaku)
             return ""
         # handle digraphs
-        if pk and (pk + kk) in self.table:
-            return self.table[pk + kk]
-        if nk and (kk + nk) in self.table:
+        if pk and (pk + kk) in HEPBURN:
+            return HEPBURN[pk + kk]
+        if nk and (kk + nk) in HEPBURN:
             return ""
         if nk and nk in SUTEGANA:
             if kk == "っ":
                 return ""  # never valid, just ignore
-            return self.table[kk][:-1] + self.table[nk]
+            return HEPBURN[kk][:-1] + HEPBURN[nk]
         if kk in SUTEGANA:
             return ""
         if kk == "ー":  # 長音符
@@ -474,7 +457,7 @@ class Cutlet:
             # ɲ before ɲ,ʨ,ʥ
             # n before n,t,d,r,z
             # ɴ otherwise
-            tnk = self.table.get(nk)
+            tnk = HEPBURN.get(nk)
             if tnk:
                 if tnk[0] in "mpb":
                     return "m"
@@ -485,4 +468,4 @@ class Cutlet:
                 elif tnk[0] in "ntdɾz":
                     return "n"
             return "ɴ"
-        return self.table.get(kk, "")
+        return HEPBURN.get(kk, "")

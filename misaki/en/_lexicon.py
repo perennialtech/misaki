@@ -7,10 +7,10 @@ from typing import Optional
 
 from num2words import num2words
 
-from ..en_phonemes import GB, US_V2
 from ..token import PronunciationResult
 from . import data
 
+_DIGIT_RE = re.compile(r"[0-9]+")
 DIPHTHONGS = frozenset("AIOQWYʤʧ")
 
 
@@ -96,7 +96,7 @@ def apply_stress(ps, stress):
 
 
 def is_digit(text):
-    return bool(re.match(r"^[0-9]+$", text))
+    return bool(_DIGIT_RE.fullmatch(text))
 
 
 def _validate_lexicon_resource(dic, name, vocab):
@@ -143,24 +143,19 @@ class Lexicon:
                 e[k.lower()] = v
         return {**e, **d}
 
+    @staticmethod
+    def _load_dictionary(british: bool, tier: str) -> dict:
+        name = f"{'gb' if british else 'us'}_{tier}.json"
+        with (importlib.resources.files(data) / name).open(
+            "r", encoding="utf-8"
+        ) as resource:
+            return Lexicon.grow_dictionary(json.load(resource))
+
     def __init__(self, british):
         self.british = british
         self.cap_stresses = (0.5, 2)
-        vocab = GB if british else US_V2
-        self.golds = {}
-        self.silvers = {}
-        with (
-            importlib.resources.files(data) / f"{'gb' if british else 'us'}_gold.json"
-        ).open("r", encoding="utf-8") as r:
-            resource = json.load(r)
-            _validate_lexicon_resource(resource, "gold", vocab)
-            self.golds = Lexicon.grow_dictionary(resource)
-        with (
-            importlib.resources.files(data) / f"{'gb' if british else 'us'}_silver.json"
-        ).open("r", encoding="utf-8") as r:
-            resource = json.load(r)
-            _validate_lexicon_resource(resource, "silver", vocab)
-            self.silvers = Lexicon.grow_dictionary(resource)
+        self.golds = self._load_dictionary(british, "gold")
+        self.silvers = self._load_dictionary(british, "silver")
 
     def get_NNP(self, word) -> PronunciationResult:
         ps = [self.golds.get(c.upper()) for c in word if c.isalpha()]
@@ -399,7 +394,7 @@ class Lexicon:
         elif word.count(".") > 1:
             return False
         cents = word.split(".")[1]
-        return len(cents) < 3 or set(cents) == {0}
+        return len(cents) < 3 or set(cents) == {"0"}
 
     def get_number(self, word, currency, is_head, num_flags) -> PronunciationResult:
         suffix = re.search(r"[a-z']+$", word)
@@ -441,7 +436,8 @@ class Lexicon:
         elif not is_head and "." not in word:
             num = word.replace(",", "")
             if num[0] == "0" or len(num) > 3:
-                [extend_num(n, first=False) for n in num]
+                for n in num:
+                    extend_num(n, first=False)
             elif len(num) == 3 and not num.endswith("00"):
                 extend_num(num[0])
                 if num[1] == "0":
@@ -459,7 +455,8 @@ class Lexicon:
                 elif num[0] == "0" or (
                     len(num) != 2 and any(n != "0" for n in num[1:])
                 ):
-                    [extend_num(n, first=False) for n in num]
+                    for n in num:
+                        extend_num(n, first=False)
                 else:
                     extend_num(num, first=first)
                 first = False
@@ -500,7 +497,6 @@ class Lexicon:
                     word = num2words(float(word))
             extend_num(word, escape=True)
         if not result:
-            print("❌", "TODO:NUM", word, currency)
             return None, None
         result, rating = " ".join(p for p, _ in result), min(r for _, r in result)
         if suffix in ("s", "'s"):

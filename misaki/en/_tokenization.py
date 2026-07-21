@@ -3,36 +3,37 @@ from dataclasses import dataclass
 from typing import Callable, Dict, List, Tuple, Union
 
 import numpy as np
+import regex
 import spacy
 
 from ..token import MToken, MTokenFeatures
+from ._lexicon import (CURRENCIES, PUNCT_TAG_PHONEMES, PUNCT_TAGS, PUNCTS,
+                       SPOKEN_SYMBOLS, is_digit)
 
 FeatureValue = Union[str, int, float]
 PreprocessorResult = Tuple[str, List[str], Dict[int, FeatureValue]]
 Preprocessor = Callable[[str], PreprocessorResult]
-from ._lexicon import (CURRENCIES, PUNCT_TAG_PHONEMES, PUNCT_TAGS, PUNCTS,
-                       SPOKEN_SYMBOLS, is_digit)
 
 LINK_REGEX = re.compile(r"\[([^\]]+)\]\(([^\)]*)\)")
+SUBTOKEN_REGEX = regex.compile(
+    r"^['‘’]+|\p{Lu}(?=\p{Lu}\p{Ll})|(?:^-)?(?:\d?[,.]?\d)+|[-_]+|['‘’]{2,}|\p{L}*?(?:['‘’]\p{L})*?\p{Ll}(?=\p{Lu})|\p{L}+(?:['‘’]\p{L})*|[^-_\p{L}'‘’\d]|['‘’]+$"
+)
 SUBTOKEN_JUNKS = frozenset("',-._‘’")
 
 
-def make_subtokenize_once():
-    import regex
-
-    SUBTOKEN_REGEX = regex.compile(
-        r"^['‘’]+|\p{Lu}(?=\p{Lu}\p{Ll})|(?:^-)?(?:\d?[,.]?\d)+|[-_]+|['‘’]{2,}|\p{L}*?(?:['‘’]\p{L})*?\p{Ll}(?=\p{Lu})|\p{L}+(?:['‘’]\p{L})*|[^-_\p{L}'‘’\d]|['‘’]+$"
-    )
-    return lambda word: regex.findall(SUBTOKEN_REGEX, word)
-
-
-subtokenize = make_subtokenize_once()
-del make_subtokenize_once
+def subtokenize(word):
+    return SUBTOKEN_REGEX.findall(word)
 
 
 @dataclass
 class TokenGroup:
     tokens: Tuple[MToken, ...]
+
+
+@dataclass
+class _MutableTokenGroup:
+    group: List[MToken]
+    open: bool
 
 
 def preprocess(text: str) -> PreprocessorResult:
@@ -165,11 +166,11 @@ def retokenize(tokens: List[MToken]) -> List[TokenGroup]:
                 tk.features.alias = "to"
 
             if tk.features.alias is not None or tk.phonemes is not None:
-                words.append({"group": [tk], "open": False})
-            elif words and words[-1]["open"] and not words[-1]["group"][-1].whitespace:
+                words.append(_MutableTokenGroup([tk], False))
+            elif words and words[-1].open and not words[-1].group[-1].whitespace:
                 tk.features.is_head = False
-                words[-1]["group"].append(tk)
+                words[-1].group.append(tk)
             else:
-                words.append({"group": [tk], "open": not tk.whitespace})
+                words.append(_MutableTokenGroup([tk], not tk.whitespace))
 
-    return [TokenGroup(tuple(w["group"])) for w in words]
+    return [TokenGroup(tuple(w.group)) for w in words]

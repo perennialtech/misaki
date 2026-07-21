@@ -135,12 +135,7 @@ print(phonemes)  # nˈW Wɾɑfdˈɪkʃənˌɛɹi wˈɜɹdz ɑɹ hˈændəld bI �
 
 ### Japanese
 
-The second gen Japanese tokenizer now uses pyopenjtalk with full unidic, enabling pitch accent marks and improved phrase merging. Deep gratitude to [@sophiefy](https://github.com/sophiefy) for invaluable recommendations and nuanced help with pitch accent.
-
-- https://github.com/r9y9/pyopenjtalk
-- https://github.com/polm/unidic-py
-
-The first gen Japanese tokenizer mainly relies on cutlet => fugashi => mecab => unidic-lite, with each being a wrapper around the next. Deep gratitude to [@Respaired](https://github.com/Respaired) for helping me learn the ropes of Japanese tokenization before any Kokoro model had started training.
+The Japanese tokenizer uses cutlet, fugashi, MeCab, and unidic-lite. Jaconv and mojimoji normalize kana and character-width variants. Deep gratitude to [@Respaired](https://github.com/Respaired) for helping me learn the ropes of Japanese tokenization before any Kokoro model had started training.
 
 - https://github.com/polm/cutlet
 - https://github.com/polm/fugashi

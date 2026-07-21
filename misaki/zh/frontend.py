@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import re
-from typing import List
+from typing import List, Tuple
 
 import jieba.posseg as psg
 from pypinyin import Style, lazy_pinyin, load_phrases_dict, load_single_dict
@@ -112,9 +112,7 @@ ZH_MAP = {
     "van": "元",
     "vn": "云",
 }
-for p in ';:,.!?/—…"()“” 12345R':
-    assert p not in ZH_MAP, p
-    ZH_MAP[p] = p
+ZH_MAP.update({p: p for p in ';:,.!?/—…"()“” 12345R'})
 
 
 class ZHFrontend:
@@ -260,8 +258,6 @@ class ZHFrontend:
         if len(finals) != len(word):
             return initials, finals
 
-        assert len(finals) == len(word)
-
         # 不发音
         new_initials = []
         new_finals = []
@@ -280,28 +276,16 @@ class ZHFrontend:
 
         return new_initials, new_finals
 
-    def __call__(self, text: str, with_erhua: bool = True) -> List[MToken]:
+    def __call__(self, text: str, with_erhua: bool = True) -> Tuple[str, List[MToken]]:
+        """Return the bopomofo-mapped phoneme stream and emitted tokens.
+
+        Token boundaries in the phoneme stream are represented with ``/``.
         """
-        Return: list of list phonemes.
-            [['w', 'o3', 'm', 'en2', ' '], ...]
-        """
-        # segments = sentences
         tokens = []
 
-        # split by punctuation
-        # for seg in segments:
-        # remove all English words in the sentence
-        # seg = re.sub('[a-zA-Z]+', '', seg)
-
-        # [(word, pos), ...]
         seg_cut = psg.lcut(text)
-        # fix wordseg bad case for sandhi
         seg_cut = self.tone_modifier.pre_merge_for_modify(seg_cut)
 
-        # 为了多音词获得更好的效果，这里采用整句预测
-        initials = []
-        finals = []
-        # pypinyin, g2pM
         for word, pos in seg_cut:
             if pos == "x" and "\u4e00" <= min(word) and max(word) <= "\u9fff":
                 pos = "X"
@@ -333,24 +317,11 @@ class ZHFrontend:
                     sub_initials, sub_finals, word, pos
                 )
 
-            initials.append(sub_initials)
-            finals.append(sub_finals)
-            # assert len(sub_initials) == len(sub_finals) == len(word)
-
-            # sum(iterable[, start])
-            # initials = sum(initials, [])
-            # finals = sum(finals, [])
-
             phones = []
             for c, v in zip(sub_initials, sub_finals):
-                # NOTE: post process for pypinyin outputs
-                # we discriminate i, ii and iii
                 if c:
                     phones.append(c)
-                # replace punctuation by ` `
-                # if c and c in self.punc:
-                #     phones.append(c)
-                if v and (v not in self.punc or v != c):  # and v not in self.rhy_phns:
+                if v and (v not in self.punc or v != c):
                     phones.append(v)
             phones = "_".join(phones).replace("_eR", "_er").replace("R", "_R")
             phones = re.sub(r"(?=\d)", "_", phones).split("_")

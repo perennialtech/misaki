@@ -10,7 +10,7 @@ from ._tokenization import (SUBTOKEN_JUNKS, Preprocessor, TokenGroup,
                             preprocess, retokenize, tokenize)
 
 
-def _merge_metadata(tokens: List[MToken]):
+def _merge_metadata(tokens: List[MToken]) -> MToken:
     stress = {tk.features.stress for tk in tokens if tk.features.stress is not None}
     currency = {
         tk.features.currency for tk in tokens if tk.features.currency is not None
@@ -35,37 +35,24 @@ def _merge_metadata(tokens: List[MToken]):
         ),
         prespace=tokens[0].features.prespace,
     )
-    return (
-        text,
-        tag,
-        tokens[-1].whitespace,
-        tokens[0].start_ts,
-        tokens[-1].end_ts,
-        merged_rating,
-        features,
-    )
-
-
-def make_lookup_token(tokens: List[MToken]) -> MToken:
-    text, tag, whitespace, start_ts, end_ts, merged_rating, features = _merge_metadata(
-        tokens
-    )
     return MToken(
         text=text,
         tag=tag,
-        whitespace=whitespace,
+        whitespace=tokens[-1].whitespace,
         phonemes=None,
-        start_ts=start_ts,
-        end_ts=end_ts,
+        start_ts=tokens[0].start_ts,
+        end_ts=tokens[-1].end_ts,
         rating=merged_rating,
         features=features,
     )
 
 
+def make_lookup_token(tokens: List[MToken]) -> MToken:
+    return _merge_metadata(tokens)
+
+
 def collapse_tokens(tokens: List[MToken], unk: str) -> MToken:
-    text, tag, whitespace, start_ts, end_ts, merged_rating, features = _merge_metadata(
-        tokens
-    )
+    merged = _merge_metadata(tokens)
     phonemes = ""
     for tk in tokens:
         if (
@@ -76,16 +63,8 @@ def collapse_tokens(tokens: List[MToken], unk: str) -> MToken:
         ):
             phonemes += " "
         phonemes += unk if tk.phonemes is None else tk.phonemes
-    return MToken(
-        text=text,
-        tag=tag,
-        whitespace=whitespace,
-        phonemes=phonemes,
-        start_ts=start_ts,
-        end_ts=end_ts,
-        rating=merged_rating,
-        features=features,
-    )
+    merged.phonemes = phonemes
+    return merged
 
 
 def resolve_tokens(tokens: List[MToken]):
@@ -134,18 +113,12 @@ def get_token_context(
     ctx: TokenContext, ps: Optional[str], token: MToken
 ) -> TokenContext:
     vowel = ctx.future_vowel
-    vowel = (
-        next(
-            (
-                None if c in NON_QUOTE_PUNCTS else (c in VOWELS)
-                for c in ps
-                if any(c in s for s in (VOWELS, CONSONANTS, NON_QUOTE_PUNCTS))
-            ),
-            vowel,
-        )
-        if ps
-        else vowel
-    )
+    if ps:
+        context_symbols = VOWELS | CONSONANTS | NON_QUOTE_PUNCTS
+        for c in ps:
+            if c in context_symbols:
+                vowel = None if c in NON_QUOTE_PUNCTS else c in VOWELS
+                break
     future_to = token.text in ("to", "To") or (
         token.text == "TO" and token.tag in ("TO", "IN")
     )
@@ -305,8 +278,5 @@ class G2P:
             else:
                 tk.phonemes = self.unk
 
-        result = "".join(
-            (tk.phonemes if tk.phonemes is not None else "") + tk.whitespace
-            for tk in final_tokens
-        )
+        result = "".join(tk.phonemes + tk.whitespace for tk in final_tokens)
         return result, final_tokens

@@ -1,4 +1,5 @@
 import re
+import warnings
 from typing import Tuple
 
 import cn2an
@@ -17,7 +18,7 @@ class ZHG2P:
 
             self.frontend = ZHFrontend(unk=unk)
             if en_callable is None:
-                print("Warning: en_callable is None, so English may be removed")
+                warnings.warn("en_callable is None, so English may be removed")
 
     @staticmethod
     def retone(p):
