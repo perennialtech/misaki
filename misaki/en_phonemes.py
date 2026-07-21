@@ -1,3 +1,5 @@
+import re
+
 SHARED_ENGLISH_OUTPUT = frozenset("AIWYbdfhijklmnpstuvwzðŋɑɔəɛɜɡɪɹʃʊʌʒʤʧˈˌθᵊɐ")
 ENGLISH_OUTPUT_PUNCTUATION = frozenset(';:,.!?—…"“”()')
 
@@ -9,9 +11,6 @@ US_DEFAULT_OR_LEGACY = SHARED_ENGLISH_OUTPUT | US_DEFAULT_OR_LEGACY_ONLY
 US_V2 = SHARED_ENGLISH_OUTPUT | US_V2_ONLY
 GB = SHARED_ENGLISH_OUTPUT | GB_ONLY
 ENGLISH_UNION = SHARED_ENGLISH_OUTPUT | US_DEFAULT_OR_LEGACY_ONLY | US_V2_ONLY | GB_ONLY
-
-
-import re
 
 
 def finalize_english_phonemes(ps, version):

@@ -56,7 +56,6 @@ ko = [
 zh = [
     "cn2an>=0.5",
     "jieba>=0.42",
-    "ordered-set>=4.1",
     "pypinyin>=0.55",
     "pypinyin-dict>=0.9",
 ]
@@ -70,7 +69,6 @@ multilingual = [
     "mojimoji>=0.0",
     "num2words>=0.5",
     "numpy>=2.4",
-    "ordered-set>=4.1",
     "pypinyin>=0.55",
     "pypinyin-dict>=0.9",
     "python-mecab-ko>=1.3",

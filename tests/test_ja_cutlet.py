@@ -1,8 +1,10 @@
 import re
 
+import pytest
+
 from misaki.ja import JAG2P
-from misaki.ja.cutlet import HEPBURN, Cutlet, Katakana_Phonetic_Extensions
-from misaki.ja.num2kana import Convert
+from misaki.ja.cutlet import HEPBURN, KATAKANA_PHONETIC_EXTENSIONS, Cutlet
+from misaki.ja.num2kana import number_to_hiragana
 
 
 def test_hepburn_table_invariants():
@@ -25,20 +27,49 @@ def test_hepburn_table_invariants():
             assert key[0] in HEPBURN
             assert key[1] in HEPBURN
 
-    assert set(Katakana_Phonetic_Extensions) == {
+    assert set(KATAKANA_PHONETIC_EXTENSIONS) == {
         chr(codepoint) for codepoint in range(12784, 12800)
     }
-    for small, full_size in Katakana_Phonetic_Extensions.items():
+    for small, full_size in KATAKANA_PHONETIC_EXTENSIONS.items():
         assert len(small) == len(full_size) == 1
         assert 12784 <= ord(small) < 12800
         assert full_size in "クシストヌハヒフヘホムラリルレロ"
 
 
 def test_long_number_is_spelled_in_japanese():
-    result = Convert("12345678901")
+    result = number_to_hiragana("12345678901")
 
     assert "Number" not in result
     assert not re.search(r"[A-Za-z]", result)
+
+
+@pytest.mark.parametrize(
+    ("digits", "expected"),
+    [
+        ("0", "ゼロ"),
+        ("7", "なな"),
+        ("13", "じゅうさん"),
+        ("20", "にじゅう"),
+        ("58", "ごじゅうはち"),
+        ("100", "ひゃく"),
+        ("305", "さんびゃくご"),
+        ("999", "きゅうひゃくきゅうじゅうきゅう"),
+        ("1000", "せん"),
+        ("1999", "せんきゅうひゃくきゅうじゅうきゅう"),
+        ("8000", "はっせん"),
+        ("10000", "いちまん"),
+        ("21000", "にまんいっせん"),
+        ("007", "なな"),
+        (
+            "123456789",
+            "いちおくにせんさんびゃくよんじゅうごまん"
+            "ろくせんななひゃくはちじゅうきゅう",
+        ),
+        ("12345678901", "いちにさんよんごろくななはちきゅうゼロいち"),
+    ],
+)
+def test_number_to_hiragana_regressions(digits, expected):
+    assert number_to_hiragana(digits) == expected
 
 
 def test_cutlet_long_number_has_no_digit_output():

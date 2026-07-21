@@ -5,8 +5,10 @@ https://github.com/kyubyong/g2pK
 
 import re
 
-# This is a list of bound nouns preceded by pure Korean numerals.
-BOUND_NOUNS = "군데 권 개 그루 닢 두 마리 모 모금 뭇 발 발짝 방 번 벌 보루 살 수 술 시 쌈 움큼 정 짝 채 척 첩 축 켤레 톨 통 가지 배 시간 살 명 줄 곳"
+# This is a set of bound nouns preceded by pure Korean numerals.
+BOUND_NOUNS = frozenset(
+    "군데 권 개 그루 닢 두 마리 모 모금 뭇 발 발짝 방 번 벌 보루 살 수 술 시 쌈 움큼 정 짝 채 척 첩 축 켤레 톨 통 가지 배 시간 살 명 줄 곳".split()
+)
 
 
 def process_num(num, sino=True):
@@ -105,14 +107,12 @@ def convert_num(string):
     >>> convert_num("우리 3시/B 10분/B에 만나자.")
     우리 세시/B 십분/B에 만나자.
     """
-    global BOUND_NOUNS
-
     # Bound Nouns
     tokens = set(re.findall("([\d][\d,]*)( ?[ㄱ-힣]+)?(?:/B)?", string))
     for token in tokens:
         num, bn = token
         bn_s = bn.lstrip()
-        if bn_s in BOUND_NOUNS.split():
+        if bn_s in BOUND_NOUNS:
             spelledout = process_num(num, sino=False)
         else:
             spelledout = process_num(num, sino=True)
@@ -128,10 +128,3 @@ def convert_num(string):
     string = string.replace("백^육", "뱅뉵")
 
     return string
-
-
-if __name__ == "__main__":
-    # test
-    print(process_num("123,456,789", sino=True))
-    print(process_num("123,456,789", sino=False))
-    print(convert_num("우리 3시/B 10분/B에 만나자."))

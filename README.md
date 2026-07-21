@@ -151,15 +151,10 @@ The Korean tokenizer is copied from 5Hyeons's g2pkc fork of Kyubyong's widely us
 
 ### Chinese
 
-The second gen Chinese tokenizer adapts better logic from paddlespeech's frontend. Jieba now cuts and tags, and pinyin-to-ipa is no longer used.
+The Chinese tokenizer adapts PaddleSpeech's frontend. Jieba performs segmentation and part-of-speech tagging.
 
 - https://github.com/PaddlePaddle/PaddleSpeech/tree/develop/paddlespeech/t2s/frontend
-
-The first gen Chinese tokenizer uses jieba to cut, pypinyin, and pinyin-to-ipa.
-
 - https://github.com/fxsjy/jieba
-- https://github.com/mozillazg/python-pinyin
-- https://github.com/stefantaubert/pinyin-to-ipa
 
 ### TODO
 

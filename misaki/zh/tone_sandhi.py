@@ -694,11 +694,7 @@ class ToneSandhi:
                 new_seg.append((word, pos))
         return new_seg
 
-    # the first and the second words are all_tone_three
-    def _merge_continuous_three_tones(
-        self, seg: List[Tuple[str, str]]
-    ) -> List[Tuple[str, str]]:
-        new_seg = []
+    def _word_finals(self, seg: List[Tuple[str, str]]) -> List[List[str]]:
         sub_finals_list = []
         for word, pos in seg:
             if pos in X_ENG:
@@ -712,15 +708,20 @@ class ToneSandhi:
             for i in en_index:
                 orig_finals[i] = "n2"
             sub_finals_list.append(orig_finals)
+        return sub_finals_list
 
+    def _merge_three_tone_words(
+        self, seg: List[Tuple[str, str]], should_merge
+    ) -> List[Tuple[str, str]]:
+        new_seg = []
+        sub_finals_list = self._word_finals(seg)
         assert len(sub_finals_list) == len(seg)
         merge_last = [False] * len(seg)
         for i, (word, pos) in enumerate(seg):
             if (
                 pos not in X_ENG
                 and i - 1 >= 0
-                and self._all_tone_three(sub_finals_list[i - 1])
-                and self._all_tone_three(sub_finals_list[i])
+                and should_merge(sub_finals_list[i - 1], sub_finals_list[i])
                 and not merge_last[i - 1]
             ):
                 # if the last word is reduplication, not merge, because reduplication need to be _neural_sandhi
@@ -734,8 +735,18 @@ class ToneSandhi:
                     new_seg.append([word, pos])
             else:
                 new_seg.append([word, pos])
-
         return new_seg
+
+    # the first and the second words are all_tone_three
+    def _merge_continuous_three_tones(
+        self, seg: List[Tuple[str, str]]
+    ) -> List[Tuple[str, str]]:
+        return self._merge_three_tone_words(
+            seg,
+            lambda previous, current: (
+                self._all_tone_three(previous) and self._all_tone_three(current)
+            ),
+        )
 
     def _is_reduplication(self, word: str) -> bool:
         return len(word) == 2 and word[0] == word[1]
@@ -744,42 +755,10 @@ class ToneSandhi:
     def _merge_continuous_three_tones_2(
         self, seg: List[Tuple[str, str]]
     ) -> List[Tuple[str, str]]:
-        new_seg = []
-        sub_finals_list = []
-        for word, pos in seg:
-            if pos in X_ENG:
-                sub_finals_list.append(["0"])
-                continue
-            orig_finals = lazy_pinyin(
-                word, neutral_tone_with_five=True, style=Style.FINALS_TONE3
-            )
-            # after pypinyin==0.44.0, '嗯' need to be n2, cause the initial and final consonants cannot be empty at the same time
-            en_index = [index for index, c in enumerate(word) if c == "嗯"]
-            for i in en_index:
-                orig_finals[i] = "n2"
-            sub_finals_list.append(orig_finals)
-        assert len(sub_finals_list) == len(seg)
-        merge_last = [False] * len(seg)
-        for i, (word, pos) in enumerate(seg):
-            if (
-                pos not in X_ENG
-                and i - 1 >= 0
-                and sub_finals_list[i - 1][-1][-1] == "3"
-                and sub_finals_list[i][0][-1] == "3"
-                and not merge_last[i - 1]
-            ):
-                # if the last word is reduplication, not merge, because reduplication need to be _neural_sandhi
-                if (
-                    not self._is_reduplication(seg[i - 1][0])
-                    and len(seg[i - 1][0]) + len(seg[i][0]) <= 3
-                ):
-                    new_seg[-1][0] = new_seg[-1][0] + seg[i][0]
-                    merge_last[i] = True
-                else:
-                    new_seg.append([word, pos])
-            else:
-                new_seg.append([word, pos])
-        return new_seg
+        return self._merge_three_tone_words(
+            seg,
+            lambda previous, current: previous[-1][-1] == "3" and current[0][-1] == "3",
+        )
 
     def _merge_er(self, seg: List[Tuple[str, str]]) -> List[Tuple[str, str]]:
         new_seg = []

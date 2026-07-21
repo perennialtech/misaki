@@ -1,21 +1,16 @@
 import subprocess
 import sys
-import tomllib
 import unicodedata
-from pathlib import Path
 
 import pytest
 
 import misaki
 from misaki.en_phonemes import ENGLISH_OUTPUT_PUNCTUATION, US_DEFAULT_OR_LEGACY
-from misaki.multilingual import (
-    MultilingualG2P,
-    normalize_multilingual_punctuation,
-    project_japanese,
-    project_korean,
-    project_mandarin,
-    validate_multilingual_output,
-)
+from misaki.multilingual import (MultilingualG2P,
+                                 normalize_multilingual_punctuation,
+                                 project_japanese, project_korean,
+                                 project_mandarin,
+                                 validate_multilingual_output)
 
 
 def _router(default):
@@ -209,17 +204,6 @@ for name in (
     "cn2an",
 ):
     assert name not in sys.modules, name
-"""
-    subprocess.run([sys.executable, "-c", code], check=True)
-
-
-def test_language_frontend_imports_are_lazy():
-    code = """
-import sys
-import misaki.ja.cutlet
-import misaki.zh.frontend
-assert "misaki.zh.transcription" not in sys.modules
-assert "ordered_set" not in sys.modules
 """
     subprocess.run([sys.executable, "-c", code], check=True)
 

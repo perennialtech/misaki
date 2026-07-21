@@ -1,5 +1,4 @@
 import importlib.resources
-import os
 import re
 
 from jamo import h2j
@@ -21,28 +20,15 @@ def parse_table():
             cell = cols[i]
             if not cell or i == 0:
                 continue
-            str1 = f"{coda}{onset}"
-            if "(" in cell:
-                str2 = cell.split("(")[0]
-                rule_ids = cell.split("(")[1][:-1].split("/")
-            else:
-                str2 = cell
-                rule_ids = []
-            table.append((str1, str2, rule_ids))
+            pattern = f"{coda}{onset}"
+            replacement = cell.split("(", 1)[0]
+            table.append((pattern, replacement))
     return table
 
 
 def annotate(string, mecab):
     """Attach POS tags to the given string using Mecab."""
-    if os.name == "nt":
-        parse = mecab.parse(string).split("\n")
-        tokens = []
-        for p in parse[:-2]:
-            p1, p2 = p.split("\t")
-            p2 = p2.split(",")[0]
-            tokens.append((p1, p2))
-    elif os.name == "posix":
-        tokens = mecab.pos(string)
+    tokens = mecab.pos(string)
 
     if re.sub(r"[ \n]", "", string) != "".join(token for token, _ in tokens):
         return string

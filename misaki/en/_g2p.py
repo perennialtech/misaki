@@ -10,7 +10,7 @@ from ._tokenization import (SUBTOKEN_JUNKS, Preprocessor, TokenGroup,
                             preprocess, retokenize, tokenize)
 
 
-def _merge_metadata(tokens: List[MToken]) -> MToken:
+def make_lookup_token(tokens: List[MToken]) -> MToken:
     stress = {tk.features.stress for tk in tokens if tk.features.stress is not None}
     currency = {
         tk.features.currency for tk in tokens if tk.features.currency is not None
@@ -47,12 +47,8 @@ def _merge_metadata(tokens: List[MToken]) -> MToken:
     )
 
 
-def make_lookup_token(tokens: List[MToken]) -> MToken:
-    return _merge_metadata(tokens)
-
-
 def collapse_tokens(tokens: List[MToken], unk: str) -> MToken:
-    merged = _merge_metadata(tokens)
+    merged = make_lookup_token(tokens)
     phonemes = ""
     for tk in tokens:
         if (

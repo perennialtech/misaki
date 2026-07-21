@@ -566,6 +566,4 @@ class Lexicon:
                 tk.features.num_flags or "",
             )
             return apply_stress(ps, tk.features.stress), rating
-        elif not all(ord(c) in LEXICON_ORDS for c in word):
-            return None, None
         return None, None

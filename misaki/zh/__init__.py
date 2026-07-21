@@ -3,43 +3,17 @@ import warnings
 from typing import Tuple
 
 import cn2an
-import jieba
-from pypinyin import Style, lazy_pinyin
 
 
 class ZHG2P:
-    def __init__(self, version=None, unk="❓", en_callable=None):
-        self.version = version
-        self.frontend = None
+    def __init__(self, unk="❓", en_callable=None):
+        from .frontend import ZHFrontend
+
+        self.frontend = ZHFrontend(unk=unk)
         self.en_callable = en_callable
         self.unk = unk
-        if version == "1.1":
-            from .frontend import ZHFrontend
-
-            self.frontend = ZHFrontend(unk=unk)
-            if en_callable is None:
-                warnings.warn("en_callable is None, so English may be removed")
-
-    @staticmethod
-    def retone(p):
-        p = p.replace("˧˩˧", "↓")  # third tone
-        p = p.replace("˧˥", "↗")  # second tone
-        p = p.replace("˥˩", "↘")  # fourth tone
-        p = p.replace("˥", "→")  # first tone
-        p = p.replace(chr(635) + chr(809), "ɨ").replace(chr(633) + chr(809), "ɨ")
-        assert chr(809) not in p, p
-        return p
-
-    @staticmethod
-    def py2ipa(py):
-        from .transcription import pinyin_to_ipa
-
-        return "".join(ZHG2P.retone(p) for p in pinyin_to_ipa(py)[0])
-
-    @staticmethod
-    def word2ipa(w):
-        pinyins = lazy_pinyin(w, style=Style.TONE3, neutral_tone_with_five=True)
-        return "".join(ZHG2P.py2ipa(py) for py in pinyins)
+        if en_callable is None:
+            warnings.warn("en_callable is None, so English may be removed")
 
     @staticmethod
     def map_punctuation(text):
@@ -56,25 +30,11 @@ class ZHG2P:
         text = text.replace("（", " (").replace("）", ") ")
         return text.strip()
 
-    @staticmethod
-    def legacy_call(text) -> str:
-        is_zh = re.match("[\u4e00-\u9fff]", text[0])
-        result = ""
-        for segment in re.findall("[\u4e00-\u9fff]+|[^\u4e00-\u9fff]+", text):
-            if is_zh:
-                words = jieba.lcut(segment, cut_all=False)
-                segment = " ".join(ZHG2P.word2ipa(w) for w in words)
-            result += segment
-            is_zh = not is_zh
-        return result.replace(chr(815), "")
-
     def __call__(self, text, en_callable=None) -> Tuple[str, None]:
         if not text.strip():
             return "", None
         text = cn2an.transform(text, "an2cn")
         text = ZHG2P.map_punctuation(text)
-        if self.frontend is None:
-            return ZHG2P.legacy_call(text), None
         # TODO: Interleaved English is brittle, needs improvement.
         en_callable = self.en_callable if en_callable is None else en_callable
         segments = []

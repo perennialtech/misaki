@@ -4,9 +4,9 @@ https://github.com/kyubyong/g2pK
 """
 
 import importlib.resources
-import os
 import re
 
+import mecab
 from jamo import h2j
 
 from .numerals import convert_num
@@ -18,7 +18,7 @@ from .utils import annotate, parse_table
 
 class G2p:
     def __init__(self):
-        self.mecab = self.get_mecab()
+        self.mecab = mecab.MeCab()
         self.table = parse_table()
         self.idiom_rules: list[tuple[re.Pattern, str]] = []
         with (importlib.resources.files(__package__) / "idioms.txt").open(
@@ -29,16 +29,6 @@ class G2p:
                 if "===" in line:
                     pattern, replacement = line.split("===", 1)
                     self.idiom_rules.append((re.compile(pattern), replacement))
-
-    def get_mecab(self):
-        if os.name == "nt":
-            import MeCab
-
-            return MeCab.Tagger()
-        elif os.name == "posix":
-            import mecab
-
-            return mecab.MeCab()
 
     def idioms(self, string):
         """Apply the bundled idiom substitutions in file order."""
@@ -74,7 +64,7 @@ class G2p:
             inp = func(inp)
         inp = re.sub("/[PJEB]", "", inp)
 
-        for str1, str2, _rule_ids in self.table:
+        for str1, str2 in self.table:
             inp = re.sub(str1, str2, inp)
 
         for func in (link1, link2, link4):
