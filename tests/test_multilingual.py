@@ -216,12 +216,15 @@ def test_multilingual_integration():
         "日本語。",
         "한국어.",
         "English, 中文, 日本語, 한국어.",
+        "Meeting at 2:30 pm for 2h.",
     ]
     for sample in samples:
         phonemes, tokens = g2p(sample)
         assert phonemes
         assert tokens is None
         validate_multilingual_output(phonemes)
+        if sample == "Meeting at 2:30 pm for 2h.":
+            assert "❓" not in phonemes
 
     mixed, _ = g2p("English，中文。日本語！한국어？")
     punctuation = [symbol for symbol in mixed if symbol in ",.!?"]

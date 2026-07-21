@@ -7,7 +7,8 @@ import regex
 import spacy
 
 from ..token import MToken, MTokenFeatures
-from ._lexicon import CURRENCIES, PUNCTS, SPOKEN_SYMBOLS, is_digit
+from ._lexicon import (CURRENCIES, PLAIN_NUMBER_RE, PUNCTS, SPOKEN_SYMBOLS,
+                       TIME_UNITS, is_digit, parse_clock_time)
 
 FeatureValue = Union[str, int, float]
 PreprocessorResult = Tuple[str, List[str], Dict[int, FeatureValue]]
@@ -39,6 +40,17 @@ def subtokenize(word):
 class _MutableTokenGroup:
     group: List[MToken]
     open: bool
+
+
+def _group_text(group: _MutableTokenGroup) -> str:
+    return "".join(token.text for token in group.group)
+
+
+def _merge_spaced_suffix(group: _MutableTokenGroup, token: MToken) -> None:
+    group.group[-1].whitespace = ""
+    token.features.is_head = False
+    group.group.append(token)
+    group.open = not token.whitespace
 
 
 def preprocess(text: str) -> PreprocessorResult:
@@ -150,7 +162,7 @@ def retokenize(tokens: List[MToken]) -> List[Tuple[MToken, ...]]:
             elif (
                 tk.text not in SPOKEN_SYMBOLS
                 and tk.tag in PUNCT_TAGS
-                and not all(97 <= ord(c.lower()) <= 122 for c in tk.text)
+                and not any(c.isalnum() for c in tk.text)
             ):
                 tk.phonemes = PUNCT_TAG_PHONEMES.get(
                     tk.tag, "".join(c for c in tk.text if c in PUNCTS)
@@ -164,6 +176,22 @@ def retokenize(tokens: List[MToken]) -> List[Tuple[MToken, ...]]:
                 ):
                     tk.features.currency = currency
             elif (
+                words
+                and not words[-1].open
+                and tk.text.lower() in ("am", "pm")
+                and parse_clock_time(_group_text(words[-1]) + tk.text) is not None
+            ):
+                _merge_spaced_suffix(words[-1], tk)
+                continue
+            elif (
+                words
+                and not words[-1].open
+                and tk.text in TIME_UNITS
+                and PLAIN_NUMBER_RE.fullmatch(_group_text(words[-1])) is not None
+            ):
+                _merge_spaced_suffix(words[-1], tk)
+                continue
+            elif (
                 0 < j < len(tks) - 1
                 and tk.text == "2"
                 and (tks[j - 1].text[-1] + tks[j + 1].text[0]).isalpha()
@@ -175,6 +203,7 @@ def retokenize(tokens: List[MToken]) -> List[Tuple[MToken, ...]]:
             elif words and words[-1].open and not words[-1].group[-1].whitespace:
                 tk.features.is_head = False
                 words[-1].group.append(tk)
+                words[-1].open = not tk.whitespace
             else:
                 words.append(_MutableTokenGroup([tk], not tk.whitespace))
 

@@ -3,7 +3,7 @@ import json
 import re
 import unicodedata
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Tuple
 
 from num2words import num2words
 
@@ -37,6 +37,65 @@ CURRENCIES = {
     "€": ("euro", "cent"),
 }
 ORDINALS = frozenset(["st", "nd", "rd", "th"])
+
+TIME_UNITS = {
+    "h": "hour",
+    "hr": "hour",
+    "hrs": "hour",
+    "min": "minute",
+    "mins": "minute",
+    "sec": "second",
+    "secs": "second",
+}
+_CLOCK_TIME_RE = re.compile(
+    r"([0-9]{1,2})(?::([0-5][0-9]))?(?::([0-5][0-9]))?([AaPp][Mm])?"
+)
+_HMS_DURATION_RE = re.compile(r"([0-9]+):([0-5][0-9]):([0-5][0-9])")
+PLAIN_NUMBER_RE = re.compile(r"-?(?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:\.[0-9]+)?")
+
+
+@dataclass(frozen=True)
+class ClockTime:
+    hour: int
+    minute: Optional[int]
+    second: Optional[int]
+    meridiem: Optional[str]
+
+
+def parse_clock_time(word: str) -> Optional[ClockTime]:
+    match = _CLOCK_TIME_RE.fullmatch(word)
+    if match is None:
+        return None
+
+    hour_text, minute_text, second_text, meridiem = match.groups()
+    if minute_text is None and meridiem is None:
+        return None
+
+    hour = int(hour_text)
+    if meridiem is None:
+        if hour > 23 or second_text is not None:
+            return None
+    elif not 1 <= hour <= 12:
+        return None
+
+    return ClockTime(
+        hour=hour,
+        minute=int(minute_text) if minute_text is not None else None,
+        second=int(second_text) if second_text is not None else None,
+        meridiem=meridiem.upper() if meridiem is not None else None,
+    )
+
+
+def parse_hms_duration(word: str) -> Optional[Tuple[int, int, int]]:
+    match = _HMS_DURATION_RE.fullmatch(word)
+    if match is None:
+        return None
+
+    hours, minutes, seconds = (int(value) for value in match.groups())
+    if hours < 24:
+        return None
+    return hours, minutes, seconds
+
 
 ADD_SYMBOLS = {".": "dot"}
 SPOKEN_SYMBOLS = {"/": ("slash", 2)}
@@ -376,6 +435,70 @@ class Lexicon:
             return _ing, rating
         return None, None
 
+    def _extend_clock_field(self, result, value):
+        if value >= 10:
+            self._extend_number(result, str(value), "", first=False)
+            return
+
+        result.append(self.lookup("O", None, -2, None))
+        if value == 0:
+            result.append(self.lookup("O", None, -2, None))
+        else:
+            self._extend_number(result, str(value), "", first=False)
+
+    def get_time(self, word) -> PronunciationResult:
+        duration = parse_hms_duration(word)
+        if duration is not None:
+            hours, minutes, seconds = duration
+            parts = [
+                (value, unit)
+                for value, unit in (
+                    (hours, "hour"),
+                    (minutes, "minute"),
+                    (seconds, "second"),
+                )
+                if value != 0
+            ]
+
+            result = []
+            for index, (value, unit) in enumerate(parts):
+                if len(parts) > 1 and index == len(parts) - 1:
+                    result.append(self.lookup("and", None, None, None))
+                self._extend_number(result, str(value), "")
+                result.append(
+                    self.lookup(unit, None, None, None)
+                    if value == 1
+                    else self.stem_s(unit + "s", None, None, None)
+                )
+            return self._apply_number_suffix(result, None)
+
+        clock = parse_clock_time(word)
+        if clock is None:
+            return None, None
+
+        result = []
+        self._extend_number(result, str(clock.hour), "")
+
+        if clock.second is not None:
+            self._extend_clock_field(result, clock.minute)
+            self._extend_clock_field(result, clock.second)
+        elif clock.minute == 0 and clock.meridiem is None:
+            result.append(
+                self.lookup(
+                    "o'clock" if 1 <= clock.hour <= 12 else "hundred",
+                    None,
+                    None,
+                    None,
+                )
+            )
+        elif clock.minute is not None and clock.minute != 0:
+            self._extend_clock_field(result, clock.minute)
+
+        if clock.meridiem is not None:
+            result.append(self.get_NNP(clock.meridiem))
+
+        return self._apply_number_suffix(result, None)
+
     @staticmethod
     def is_currency(word):
         if "." not in word:
@@ -540,6 +663,18 @@ class Lexicon:
             result.append(self.lookup("minus", None, None, None))
             word = word[1:]
 
+        if suffix in TIME_UNITS:
+            if PLAIN_NUMBER_RE.fullmatch(word) is None:
+                return None, None
+            self._read_number_fallback(result, word, None, num_flags)
+            unit = TIME_UNITS[suffix]
+            result.append(
+                self.lookup(unit, None, None, None)
+                if word.replace(",", "") == "1"
+                else self.stem_s(unit + "s", None, None, None)
+            )
+            return self._apply_number_suffix(result, None)
+
         if self._read_number_ordinal(result, word, suffix, num_flags):
             pass
         elif self._read_number_year(result, word, currency, num_flags):
@@ -575,7 +710,21 @@ class Lexicon:
     def is_number(word, is_head):
         if all(not is_digit(c) for c in word):
             return False
-        suffixes = ("ing", "'d", "ed", "'s", *ORDINALS, "s")
+        suffixes = (
+            "ing",
+            "'d",
+            "ed",
+            "'s",
+            "mins",
+            "secs",
+            "hrs",
+            "min",
+            "sec",
+            "hr",
+            *ORDINALS,
+            "s",
+            "h",
+        )
         for s in suffixes:
             if word.endswith(s):
                 word = word[: -len(s)]
@@ -604,7 +753,12 @@ class Lexicon:
                 ),
                 rating,
             )
-        elif Lexicon.is_number(word, tk.features.is_head):
+
+        ps, rating = self.get_time(word)
+        if ps is not None:
+            return apply_stress(ps, tk.features.stress), rating
+
+        if Lexicon.is_number(word, tk.features.is_head):
             ps, rating = self.get_number(
                 word,
                 tk.features.currency,
