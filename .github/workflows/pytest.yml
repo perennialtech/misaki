@@ -23,7 +23,5 @@ jobs:
           python-version: ${{ matrix.python-version }}
           allow-prereleases: true
 
-      - run: uv pip install --system pytest
-      - run: uv pip install --system --editable ".[en]"
-
-      - run: pytest tests/
+      - run: uv sync --all-extras
+      - run: uv run pytest tests/
