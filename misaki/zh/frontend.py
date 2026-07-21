@@ -14,42 +14,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import re
-from typing import List, Tuple
+from typing import List
 
 import jieba.posseg as psg
 from pypinyin import Style, lazy_pinyin, load_phrases_dict, load_single_dict
 from pypinyin_dict.phrase_pinyin_data import large_pinyin
 
-from ..token import MToken
-from .tone_sandhi import ToneSandhi
-
-INITIALS = [
-    "b",
-    "p",
-    "m",
-    "f",
-    "d",
-    "t",
-    "n",
-    "l",
-    "g",
-    "k",
-    "h",
-    "zh",
-    "ch",
-    "sh",
-    "r",
-    "z",
-    "c",
-    "s",
-    "j",
-    "q",
-    "x",
-]
-INITIALS += ["y", "w", " "]  # , 'spl', 'spn', 'sil']
-
-# 0 for None, 5 for neutral
-TONES = ["0", "1", "2", "3", "4", "5"]
+from ..token import G2PResult, MToken
+from .tone_sandhi import ToneSandhi, pinyin_finals
 
 ZH_MAP = {
     "b": "ㄅ",
@@ -216,13 +188,7 @@ class ZHFrontend:
         orig_initials = lazy_pinyin(
             word, neutral_tone_with_five=True, style=Style.INITIALS
         )
-        orig_finals = lazy_pinyin(
-            word, neutral_tone_with_five=True, style=Style.FINALS_TONE3
-        )
-        # after pypinyin==0.44.0, '嗯' need to be n2, cause the initial and final consonants cannot be empty at the same time
-        en_index = [index for index, c in enumerate(word) if c == "嗯"]
-        for i in en_index:
-            orig_finals[i] = "n2"
+        orig_finals = pinyin_finals(word)
 
         for c, v in zip(orig_initials, orig_finals):
             if re.match(r"i\d", v):
@@ -241,7 +207,7 @@ class ZHFrontend:
         self, initials: List[str], finals: List[str], word: str, pos: str
     ) -> List[List[str]]:
         """
-        Do erhub.
+        Apply erhua (儿化) merging.
         """
         # fix er1
         for i, phn in enumerate(finals):
@@ -276,7 +242,7 @@ class ZHFrontend:
 
         return new_initials, new_finals
 
-    def __call__(self, text: str, with_erhua: bool = True) -> Tuple[str, List[MToken]]:
+    def __call__(self, text: str, with_erhua: bool = True) -> G2PResult:
         """Return the bopomofo-mapped phoneme stream and emitted tokens.
 
         Token boundaries in the phoneme stream are represented with ``/``.
@@ -287,7 +253,7 @@ class ZHFrontend:
         seg_cut = self.tone_modifier.pre_merge_for_modify(seg_cut)
 
         for word, pos in seg_cut:
-            if pos == "x" and "\u4e00" <= min(word) and max(word) <= "\u9fff":
+            if pos == "x" and all("\u4e00" <= c <= "\u9fff" for c in word):
                 pos = "X"
             elif pos != "x" and word in self.punc:
                 pos = "x"

@@ -1,7 +1,9 @@
 from dataclasses import dataclass, field
-from typing import Optional, Protocol, Tuple
+from typing import List, Optional, Protocol, Tuple
 
 PronunciationResult = Tuple[Optional[str], Optional[int]]
+# The phoneme string and aligned tokens, or None when alignment is unavailable.
+G2PResult = Tuple[str, Optional[List["MToken"]]]
 
 
 class TokenFallback(Protocol):

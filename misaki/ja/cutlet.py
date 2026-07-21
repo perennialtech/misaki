@@ -4,12 +4,12 @@ import importlib.resources
 import re
 import unicodedata
 from dataclasses import dataclass
-from typing import Tuple
 
 import jaconv
 import mojimoji
 from fugashi import Tagger
 
+from ..token import G2PResult
 from . import data
 from .num2kana import number_to_hiragana
 
@@ -180,7 +180,9 @@ HEPBURN = {
     "ゔぉ": "vo",
     "ゔゅ": "bʲɨ",
     "ゔょ": "bʲo",
-    # Symbols
+}
+
+SYMBOLS = {
     "。": ".",
     "、": ",",
     "？": "?",
@@ -268,7 +270,7 @@ class Cutlet:
     def __init__(self):
         self.tagger = Tagger()
 
-    def __call__(self, text) -> Tuple[str, None]:
+    def __call__(self, text) -> G2PResult:
         """Build a complete string from input text."""
         # TODO: Return List[MToken] instead of None
         if not text:
@@ -380,7 +382,7 @@ class Cutlet:
         if surface.isascii():
             return surface
         if word.char_type == 3:  # symbol
-            return "".join(HEPBURN.get(c, c) for c in surface)
+            return "".join(SYMBOLS.get(c, c) for c in surface)
         elif word.char_type != 6:
             return ""  # TODO: silently fail
         out = ""

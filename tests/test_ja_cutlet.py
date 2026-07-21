@@ -3,26 +3,28 @@ import re
 import pytest
 
 from misaki.ja import JAG2P
-from misaki.ja.cutlet import HEPBURN, KATAKANA_PHONETIC_EXTENSIONS, Cutlet
+from misaki.ja.cutlet import (HEPBURN, KATAKANA_PHONETIC_EXTENSIONS, SYMBOLS,
+                              Cutlet)
 from misaki.ja.num2kana import number_to_hiragana
 
 
 def test_hepburn_table_invariants():
-    kana_keys = {
-        key
-        for key in HEPBURN
-        if all(
-            12353 <= ord(char) <= 12438 or 12535 <= ord(char) <= 12538 for char in key
+    assert len(HEPBURN) == 164
+    assert all(
+        all(
+            ord(char) in range(12353, 12439) or ord(char) in range(12535, 12539)
+            for char in key
         )
-    }
-    assert len(kana_keys) == 164
+        for key in HEPBURN
+    )
+    assert set(SYMBOLS).isdisjoint(HEPBURN)
     assert all(
         codepoint in {12387, 12435} or chr(codepoint) in HEPBURN
         for codepoint in range(12353, 12439)
     )
     assert all(chr(codepoint) in HEPBURN for codepoint in range(12535, 12539))
 
-    for key in kana_keys:
+    for key in HEPBURN:
         if len(key) == 2:
             assert key[0] in HEPBURN
             assert key[1] in HEPBURN

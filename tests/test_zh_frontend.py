@@ -22,6 +22,10 @@ def test_zh_frontend_smoke():
     assert all(isinstance(token, MToken) for token in tokens)
 
 
+def test_zhg2p_punctuation_mapping():
+    assert ZHG2P.map_punctuation("你好、世界。(好)") == "你好, 世界.  (好)"
+
+
 def test_zhg2p_smoke():
     with pytest.warns(UserWarning):
         g2p = ZHG2P()

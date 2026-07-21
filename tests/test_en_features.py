@@ -5,7 +5,7 @@ from misaki import en
 from misaki.en._g2p import collapse_tokens, make_lookup_token
 from misaki.en._lexicon import (Lexicon, TokenContext,
                                 _validate_lexicon_resource)
-from misaki.en._tokenization import TokenGroup, retokenize
+from misaki.en._tokenization import retokenize
 from misaki.token import MToken, MTokenFeatures
 
 
@@ -109,7 +109,7 @@ def test_retokenize_groups():
     t3 = MToken(".", ".", "")
 
     out = retokenize([t1, t2])
-    assert all(isinstance(g, TokenGroup) for g in out)
+    assert all(isinstance(g, tuple) for g in out)
     assert len(out) == 2
 
 

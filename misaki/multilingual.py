@@ -1,10 +1,10 @@
 import unicodedata
-from typing import Literal, Optional, Tuple
+from typing import Literal, Optional
 
 import regex
 
 from .en_phonemes import ENGLISH_OUTPUT_PUNCTUATION, US_DEFAULT_OR_LEGACY
-from .token import TokenFallback
+from .token import G2PResult, TokenFallback
 
 _PUNCTUATION_TRANSLATION = str.maketrans(
     {
@@ -506,7 +506,7 @@ class MultilingualG2P:
         phonemes, _ = self.en(text[start:end])
         return text[:start] + phonemes + text[end:]
 
-    def __call__(self, text: str) -> Tuple[str, None]:
+    def __call__(self, text: str) -> G2PResult:
         if not text:
             return "", None
 

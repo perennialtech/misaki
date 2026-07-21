@@ -23,6 +23,15 @@ YI = "一"
 X_ENG = frozenset(["x", "eng"])
 
 
+def pinyin_finals(word: str) -> List[str]:
+    finals = lazy_pinyin(word, neutral_tone_with_five=True, style=Style.FINALS_TONE3)
+    # pypinyin >= 0.44 leaves '嗯' without a final; force n2.
+    for i, char in enumerate(word):
+        if char == "嗯":
+            finals[i] = "n2"
+    return finals
+
+
 class ToneSandhi:
     def __repr__(self):
         return "MandarinToneSandhi"
@@ -600,7 +609,6 @@ class ToneSandhi:
         return all(x[-1] == "3" for x in finals)
 
     def _three_sandhi(self, word: str, finals: List[str]) -> List[str]:
-
         if len(word) == 2 and self._all_tone_three(finals):
             finals[0] = finals[0][:-1] + "2"
         elif len(word) == 3:
@@ -614,21 +622,23 @@ class ToneSandhi:
                 elif len(word_list[0]) == 1:
                     finals[1] = finals[1][:-1] + "2"
             else:
-                finals_list = [finals[: len(word_list[0])], finals[len(word_list[0]) :]]
-                if len(finals_list) == 2:
-                    for i, sub in enumerate(finals_list):
-                        # e.g. 所有/人
-                        if self._all_tone_three(sub) and len(sub) == 2:
-                            finals_list[i][0] = finals_list[i][0][:-1] + "2"
-                        # e.g. 好/喜欢
-                        elif (
-                            i == 1
-                            and not self._all_tone_three(sub)
-                            and finals_list[i][0][-1] == "3"
-                            and finals_list[0][-1][-1] == "3"
-                        ):
-                            finals_list[0][-1] = finals_list[0][-1][:-1] + "2"
-                        finals = sum(finals_list, [])
+                finals_list = [
+                    finals[: len(word_list[0])],
+                    finals[len(word_list[0]) :],
+                ]
+                for i, sub in enumerate(finals_list):
+                    # e.g. 所有/人
+                    if self._all_tone_three(sub) and len(sub) == 2:
+                        finals_list[i][0] = finals_list[i][0][:-1] + "2"
+                    # e.g. 好/喜欢
+                    elif (
+                        i == 1
+                        and not self._all_tone_three(sub)
+                        and finals_list[i][0][-1] == "3"
+                        and finals_list[0][-1][-1] == "3"
+                    ):
+                        finals_list[0][-1] = finals_list[0][-1][:-1] + "2"
+                finals = sum(finals_list, [])
         # split idiom into two words who's length is 2
         elif len(word) == 4:
             finals_list = [finals[:2], finals[2:]]
@@ -700,14 +710,7 @@ class ToneSandhi:
             if pos in X_ENG:
                 sub_finals_list.append(["0"])
                 continue
-            orig_finals = lazy_pinyin(
-                word, neutral_tone_with_five=True, style=Style.FINALS_TONE3
-            )
-            # after pypinyin==0.44.0, '嗯' need to be n2, cause the initial and final consonants cannot be empty at the same time
-            en_index = [index for index, c in enumerate(word) if c == "嗯"]
-            for i in en_index:
-                orig_finals[i] = "n2"
-            sub_finals_list.append(orig_finals)
+            sub_finals_list.append(pinyin_finals(word))
         return sub_finals_list
 
     def _merge_three_tone_words(

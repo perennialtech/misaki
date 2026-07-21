@@ -26,9 +26,9 @@ class FallbackNetwork:
     def tokens_to_phonemes(self, tokens):
         return "".join([self.token_to_phoneme.get(t, "") for t in tokens if t > 3])
 
-    def __call__(self, input_token) -> PronunciationResult:
+    def __call__(self, token) -> PronunciationResult:
         input_ids = self.torch.tensor(
-            [self.graphemes_to_tokens(input_token.text)], device=self.device
+            [self.graphemes_to_tokens(token.text)], device=self.device
         )
 
         with self.torch.no_grad():

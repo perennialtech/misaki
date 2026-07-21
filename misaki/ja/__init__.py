@@ -1,4 +1,4 @@
-from typing import Tuple
+from ..token import G2PResult
 
 
 class JAG2P:
@@ -7,5 +7,5 @@ class JAG2P:
 
         self.cutlet = Cutlet()
 
-    def __call__(self, text) -> Tuple[str, None]:
+    def __call__(self, text) -> G2PResult:
         return self.cutlet(text)

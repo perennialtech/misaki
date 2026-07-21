@@ -27,18 +27,7 @@ class TokenContext:
 PUNCTS = frozenset(';:,.!?—…"“”')
 NON_QUOTE_PUNCTS = frozenset(p for p in PUNCTS if p not in '"“”')
 
-PUNCT_TAGS = frozenset(
-    [".", ",", "-LRB-", "-RRB-", "``", '""', "''", ":", "$", "#", "NFP"]
-)
-PUNCT_TAG_PHONEMES = {
-    "-LRB-": "(",
-    "-RRB-": ")",
-    "``": chr(8220),
-    '""': chr(8221),
-    "''": chr(8221),
-}
-
-LEXICON_ORDS = [39, 45, *range(65, 91), *range(97, 123)]
+LEXICON_CHARS = frozenset("'-ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")
 CONSONANTS = frozenset("bdfhjklmnpstvwzðŋɡɹɾʃʒʤʧθ")
 US_TAUS = frozenset("AIOWYiuæɑəɛɪɹʊʌ")
 
@@ -58,6 +47,7 @@ STRESSES = "ˌˈ"
 PRIMARY_STRESS = STRESSES[1]
 SECONDARY_STRESS = STRESSES[0]
 VOWELS = frozenset("AIOQWYaiuæɑɒɔəɛɜɪʊʌᵻ")
+CAP_STRESSES = (0.5, 2)
 
 
 def apply_stress(ps, stress):
@@ -153,7 +143,6 @@ class Lexicon:
 
     def __init__(self, british):
         self.british = british
-        self.cap_stresses = (0.5, 2)
         self.golds = self._load_dictionary(british, "gold")
         self.silvers = self._load_dictionary(british, "silver")
 
@@ -229,7 +218,7 @@ class Lexicon:
     def is_known(self, word, tag):
         if word in self.golds or word in SYMBOLS or word in self.silvers:
             return True
-        elif not word.isalpha() or not all(ord(c) in LEXICON_ORDS for c in word):
+        elif not word.isalpha() or not all(c in LEXICON_CHARS for c in word):
             return False
         elif len(word) == 1:
             return True
@@ -396,116 +385,169 @@ class Lexicon:
         cents = word.split(".")[1]
         return len(cents) < 3 or set(cents) == {"0"}
 
+    @staticmethod
+    def _split_number_suffix(word):
+        match = re.search(r"[a-z']+$", word)
+        suffix = match.group() if match else None
+        return (word[: -len(suffix)] if suffix else word), suffix
+
+    def _extend_number(self, result, num, num_flags, first=True, escape=False) -> None:
+        splits = re.split(r"[^a-z]+", num if escape else num2words(int(num)))
+        # Words emitted by num2words resolve through the bundled gold dictionary.
+        for i, spoken_word in enumerate(splits):
+            if spoken_word != "and" or "&" in num_flags:
+                if (
+                    first
+                    and i == 0
+                    and len(splits) > 1
+                    and spoken_word == "one"
+                    and "a" in num_flags
+                ):
+                    result.append(("ə", 4))
+                else:
+                    result.append(
+                        self.lookup(
+                            spoken_word,
+                            None,
+                            -2 if spoken_word == "point" else None,
+                            None,
+                        )
+                    )
+            elif spoken_word == "and" and "n" in num_flags and result:
+                result[-1] = (result[-1][0] + "ən", result[-1][1])
+
+    def _read_number_ordinal(self, result, word, suffix, num_flags):
+        if not (is_digit(word) and suffix in ORDINALS):
+            return False
+        self._extend_number(
+            result,
+            num2words(int(word), to="ordinal"),
+            num_flags,
+            escape=True,
+        )
+        return True
+
+    def _read_number_year(self, result, word, currency, num_flags):
+        if result or len(word) != 4 or currency in CURRENCIES or not is_digit(word):
+            return False
+        self._extend_number(
+            result,
+            num2words(int(word), to="year"),
+            num_flags,
+            escape=True,
+        )
+        return True
+
+    def _read_non_head_number(self, result, word, is_head, num_flags):
+        if is_head or "." in word:
+            return False
+        num = word.replace(",", "")
+        if num[0] == "0" or len(num) > 3:
+            for digit in num:
+                self._extend_number(result, digit, num_flags, first=False)
+        elif len(num) == 3 and not num.endswith("00"):
+            self._extend_number(result, num[0], num_flags)
+            if num[1] == "0":
+                result.append(self.lookup("O", None, -2, None))
+                self._extend_number(result, num[2], num_flags, first=False)
+            else:
+                self._extend_number(result, num[1:], num_flags, first=False)
+        else:
+            self._extend_number(result, num, num_flags)
+        return True
+
+    def _read_number_groups(self, result, word, is_head, num_flags):
+        if word.count(".") <= 1 and is_head:
+            return False
+        first = True
+        for num in word.replace(",", "").split("."):
+            if not num:
+                pass
+            elif num[0] == "0" or (
+                len(num) != 2 and any(digit != "0" for digit in num[1:])
+            ):
+                for digit in num:
+                    self._extend_number(result, digit, num_flags, first=False)
+            else:
+                self._extend_number(result, num, num_flags, first=first)
+            first = False
+        return True
+
+    def _read_currency_number(self, result, word, currency, num_flags):
+        if currency not in CURRENCIES or not Lexicon.is_currency(word):
+            return False
+        pairs = [
+            (int(num) if num else 0, unit)
+            for num, unit in zip(word.replace(",", "").split("."), CURRENCIES[currency])
+        ]
+        if len(pairs) > 1:
+            if pairs[1][0] == 0:
+                pairs = pairs[:1]
+            elif pairs[0][0] == 0:
+                pairs = pairs[1:]
+        for i, (num, unit) in enumerate(pairs):
+            if i > 0:
+                result.append(self.lookup("and", None, None, None))
+            self._extend_number(result, num, num_flags, first=i == 0)
+            result.append(
+                self.stem_s(unit + "s", None, None, None)
+                if abs(num) != 1 and unit != "pence"
+                else self.lookup(unit, None, None, None)
+            )
+        return True
+
+    def _read_number_fallback(self, result, word, suffix, num_flags):
+        if is_digit(word):
+            spoken = num2words(int(word), to="cardinal")
+        elif "." not in word:
+            spoken = num2words(
+                int(word.replace(",", "")),
+                to="ordinal" if suffix in ORDINALS else "cardinal",
+            )
+        else:
+            word = word.replace(",", "")
+            if word[0] == ".":
+                spoken = "point " + " ".join(
+                    num2words(int(digit)) for digit in word[1:]
+                )
+            else:
+                spoken = num2words(float(word))
+        self._extend_number(result, spoken, num_flags, escape=True)
+
+    def _apply_number_suffix(self, result, suffix) -> PronunciationResult:
+        if not result:
+            return None, None
+        pronunciation = " ".join(phonemes for phonemes, _ in result)
+        rating = min(rating for _, rating in result)
+        if suffix in ("s", "'s"):
+            pronunciation = self._s(pronunciation)
+        elif suffix in ("ed", "'d"):
+            pronunciation = self._ed(pronunciation)
+        elif suffix == "ing":
+            pronunciation = self._ing(pronunciation)
+        return pronunciation, rating
+
     def get_number(self, word, currency, is_head, num_flags) -> PronunciationResult:
-        suffix = re.search(r"[a-z']+$", word)
-        suffix = suffix.group() if suffix else None
-        word = word[: -len(suffix)] if suffix else word
+        word, suffix = self._split_number_suffix(word)
         result = []
         if word.startswith("-"):
             result.append(self.lookup("minus", None, None, None))
             word = word[1:]
 
-        def extend_num(num, first=True, escape=False):
-            splits = re.split(r"[^a-z]+", num if escape else num2words(int(num)))
-            for i, w in enumerate(splits):
-                if w != "and" or "&" in num_flags:
-                    if (
-                        first
-                        and i == 0
-                        and len(splits) > 1
-                        and w == "one"
-                        and "a" in num_flags
-                    ):
-                        result.append(("ə", 4))
-                    else:
-                        result.append(
-                            self.lookup(w, None, -2 if w == "point" else None, None)
-                        )
-                elif w == "and" and "n" in num_flags and result:
-                    result[-1] = (result[-1][0] + "ən", result[-1][1])
-
-        if is_digit(word) and suffix in ORDINALS:
-            extend_num(num2words(int(word), to="ordinal"), escape=True)
-        elif (
-            not result
-            and len(word) == 4
-            and currency not in CURRENCIES
-            and is_digit(word)
-        ):
-            extend_num(num2words(int(word), to="year"), escape=True)
-        elif not is_head and "." not in word:
-            num = word.replace(",", "")
-            if num[0] == "0" or len(num) > 3:
-                for n in num:
-                    extend_num(n, first=False)
-            elif len(num) == 3 and not num.endswith("00"):
-                extend_num(num[0])
-                if num[1] == "0":
-                    result.append(self.lookup("O", None, -2, None))
-                    extend_num(num[2], first=False)
-                else:
-                    extend_num(num[1:], first=False)
-            else:
-                extend_num(num)
-        elif word.count(".") > 1 or not is_head:
-            first = True
-            for num in word.replace(",", "").split("."):
-                if not num:
-                    pass
-                elif num[0] == "0" or (
-                    len(num) != 2 and any(n != "0" for n in num[1:])
-                ):
-                    for n in num:
-                        extend_num(n, first=False)
-                else:
-                    extend_num(num, first=first)
-                first = False
-        elif currency in CURRENCIES and Lexicon.is_currency(word):
-            pairs = [
-                (int(num) if num else 0, unit)
-                for num, unit in zip(
-                    word.replace(",", "").split("."), CURRENCIES[currency]
-                )
-            ]
-            if len(pairs) > 1:
-                if pairs[1][0] == 0:
-                    pairs = pairs[:1]
-                elif pairs[0][0] == 0:
-                    pairs = pairs[1:]
-            for i, (num, unit) in enumerate(pairs):
-                if i > 0:
-                    result.append(self.lookup("and", None, None, None))
-                extend_num(num, first=i == 0)
-                result.append(
-                    self.stem_s(unit + "s", None, None, None)
-                    if abs(num) != 1 and unit != "pence"
-                    else self.lookup(unit, None, None, None)
-                )
+        if self._read_number_ordinal(result, word, suffix, num_flags):
+            pass
+        elif self._read_number_year(result, word, currency, num_flags):
+            pass
+        elif self._read_non_head_number(result, word, is_head, num_flags):
+            pass
+        elif self._read_number_groups(result, word, is_head, num_flags):
+            pass
+        elif self._read_currency_number(result, word, currency, num_flags):
+            pass
         else:
-            if is_digit(word):
-                word = num2words(int(word), to="cardinal")
-            elif "." not in word:
-                word = num2words(
-                    int(word.replace(",", "")),
-                    to="ordinal" if suffix in ORDINALS else "cardinal",
-                )
-            else:
-                word = word.replace(",", "")
-                if word[0] == ".":
-                    word = "point " + " ".join(num2words(int(n)) for n in word[1:])
-                else:
-                    word = num2words(float(word))
-            extend_num(word, escape=True)
-        if not result:
-            return None, None
-        result, rating = " ".join(p for p, _ in result), min(r for _, r in result)
-        if suffix in ("s", "'s"):
-            return self._s(result), rating
-        elif suffix in ("ed", "'d"):
-            return self._ed(result), rating
-        elif suffix == "ing":
-            return self._ing(result), rating
-        return result, rating
+            self._read_number_fallback(result, word, suffix, num_flags)
+
+        return self._apply_number_suffix(result, suffix)
 
     def append_currency(self, ps, currency):
         if not currency:
@@ -546,9 +588,7 @@ class Lexicon:
         word = unicodedata.normalize("NFKC", word)
         word = "".join(Lexicon.numeric_if_needed(c) for c in word)
         stress = (
-            None
-            if word == word.lower()
-            else self.cap_stresses[int(word == word.upper())]
+            None if word == word.lower() else CAP_STRESSES[int(word == word.upper())]
         )
         ps, rating = self.get_word(word, tk.tag, stress, ctx)
         if ps is not None:
@@ -563,7 +603,7 @@ class Lexicon:
                 word,
                 tk.features.currency,
                 tk.features.is_head,
-                tk.features.num_flags or "",
+                tk.features.num_flags,
             )
             return apply_stress(ps, tk.features.stress), rating
         return None, None

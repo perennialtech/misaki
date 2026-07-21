@@ -1,22 +1,24 @@
 import re
-from typing import Tuple
 
 import espeakng_loader
 import phonemizer
 from phonemizer.backend.espeak.wrapper import EspeakWrapper
 
 from .en_phonemes import english_from_espeak
-from .token import PronunciationResult
+from .token import G2PResult, PronunciationResult
 
-# Set espeak-ng library path and espeak-ng-data
-EspeakWrapper.set_library(espeakng_loader.get_library_path())
-# Change data_path as needed when editing espeak-ng phonemes
-EspeakWrapper.set_data_path(espeakng_loader.get_data_path())
+
+def _configure_espeak():
+    # Set espeak-ng library path and espeak-ng-data
+    EspeakWrapper.set_library(espeakng_loader.get_library_path())
+    # Change data_path as needed when editing espeak-ng phonemes
+    EspeakWrapper.set_data_path(espeakng_loader.get_data_path())
 
 
 # EspeakFallback is used as a last resort for English
 class EspeakFallback:
     def __init__(self, british):
+        _configure_espeak()
         self.british = british
         self.backend = phonemizer.backend.EspeakBackend(
             language=f"en-{'gb' if british else 'us'}",
@@ -37,6 +39,7 @@ class EspeakFallback:
 # EspeakG2P used for most non-English/CJK languages
 class EspeakG2P:
     def __init__(self, language, version=None):
+        _configure_espeak()
         self.language = language
         self.version = version
         self.backend = phonemizer.backend.EspeakBackend(
@@ -74,7 +77,7 @@ class EspeakG2P:
             )
         self.e2m = sorted(self.e2m.items())
 
-    def __call__(self, text) -> Tuple[str, None]:
+    def __call__(self, text) -> G2PResult:
         # Angles to curly quotes
         text = text.replace("«", chr(8220)).replace("»", chr(8221))
         # Parentheses to angles

@@ -3,11 +3,13 @@ from typing import List, Optional, Tuple
 import spacy
 
 from ..en_phonemes import finalize_english_phonemes
-from ..token import MToken, MTokenFeatures, TokenFallback
+from ..token import G2PResult, MToken, MTokenFeatures, TokenFallback
 from ._lexicon import (CONSONANTS, NON_QUOTE_PUNCTS, PRIMARY_STRESS, VOWELS,
                        Lexicon, TokenContext, apply_stress, stress_weight)
-from ._tokenization import (SUBTOKEN_JUNKS, Preprocessor, TokenGroup,
-                            preprocess, retokenize, tokenize)
+from ._tokenization import (SUBTOKEN_JUNKS, Preprocessor, preprocess,
+                            retokenize, tokenize)
+
+CONTEXT_SYMBOLS = VOWELS | CONSONANTS | NON_QUOTE_PUNCTS
 
 
 def make_lookup_token(tokens: List[MToken]) -> MToken:
@@ -30,9 +32,7 @@ def make_lookup_token(tokens: List[MToken]) -> MToken:
         alias=None,
         stress=list(stress)[0] if len(stress) == 1 else None,
         currency=max(currency) if currency else None,
-        num_flags="".join(
-            sorted({c for tk in tokens for c in (tk.features.num_flags or "")})
-        ),
+        num_flags="".join(sorted({c for tk in tokens for c in tk.features.num_flags})),
         prespace=tokens[0].features.prespace,
     )
     return MToken(
@@ -63,6 +63,40 @@ def collapse_tokens(tokens: List[MToken], unk: str) -> MToken:
     return merged
 
 
+def _assign_residual_phonemes(tokens: List[MToken], prespace: bool) -> None:
+    for i, tk in enumerate(tokens):
+        if tk.phonemes is None:
+            if i == len(tokens) - 1 and tk.text in NON_QUOTE_PUNCTS:
+                tk.phonemes = tk.text
+                tk.rating = 3
+            elif all(c in SUBTOKEN_JUNKS for c in tk.text):
+                tk.phonemes = ""
+                tk.rating = 3
+        elif i > 0:
+            tk.features.prespace = prespace
+
+
+def _rebalance_stress(tokens: List[MToken]) -> None:
+    # Entries are (has_primary_stress, phoneme_weight, token_position).
+    indices = [
+        (PRIMARY_STRESS in tk.phonemes, stress_weight(tk.phonemes), i)
+        for i, tk in enumerate(tokens)
+        if tk.phonemes
+    ]
+    if len(indices) == 2 and len(tokens[indices[0][2]].text) == 1:
+        position = indices[1][2]
+        tokens[position].phonemes = apply_stress(tokens[position].phonemes, -0.5)
+        return
+    if (
+        len(indices) < 2
+        or sum(has_primary for has_primary, _, _ in indices) <= (len(indices) + 1) // 2
+    ):
+        return
+    indices = sorted(indices)[: len(indices) // 2]
+    for _, _, position in indices:
+        tokens[position].phonemes = apply_stress(tokens[position].phonemes, -0.5)
+
+
 def resolve_tokens(tokens: List[MToken]):
     text = "".join(tk.text + tk.whitespace for tk in tokens[:-1]) + tokens[-1].text
     prespace = (
@@ -77,32 +111,9 @@ def resolve_tokens(tokens: List[MToken]):
         )
         > 1
     )
-    for i, tk in enumerate(tokens):
-        if tk.phonemes is None:
-            if i == len(tokens) - 1 and tk.text in NON_QUOTE_PUNCTS:
-                tk.phonemes = tk.text
-                tk.rating = 3
-            elif all(c in SUBTOKEN_JUNKS for c in tk.text):
-                tk.phonemes = ""
-                tk.rating = 3
-        elif i > 0:
-            tk.features.prespace = prespace
-    if prespace:
-        return
-    indices = [
-        (PRIMARY_STRESS in tk.phonemes, stress_weight(tk.phonemes), i)
-        for i, tk in enumerate(tokens)
-        if tk.phonemes
-    ]
-    if len(indices) == 2 and len(tokens[indices[0][2]].text) == 1:
-        i = indices[1][2]
-        tokens[i].phonemes = apply_stress(tokens[i].phonemes, -0.5)
-        return
-    elif len(indices) < 2 or sum(b for b, _, _ in indices) <= (len(indices) + 1) // 2:
-        return
-    indices = sorted(indices)[: len(indices) // 2]
-    for _, _, i in indices:
-        tokens[i].phonemes = apply_stress(tokens[i].phonemes, -0.5)
+    _assign_residual_phonemes(tokens, prespace)
+    if not prespace:
+        _rebalance_stress(tokens)
 
 
 def get_token_context(
@@ -110,9 +121,8 @@ def get_token_context(
 ) -> TokenContext:
     vowel = ctx.future_vowel
     if ps:
-        context_symbols = VOWELS | CONSONANTS | NON_QUOTE_PUNCTS
         for c in ps:
-            if c in context_symbols:
+            if c in CONTEXT_SYMBOLS:
                 vowel = None if c in NON_QUOTE_PUNCTS else c in VOWELS
                 break
     future_to = token.text in ("to", "To") or (
@@ -185,16 +195,16 @@ class G2P:
 
     def _resolve_group(
         self,
-        group: TokenGroup,
+        group: Tuple[MToken, ...],
         ctx: TokenContext,
     ) -> Tuple[MToken, TokenContext]:
         """
-        Resolves a single TokenGroup right-to-left.
+        Resolves a single token group right-to-left.
         - Lexical lookup greedily resolves the longest available right-bounded span.
         - If an unresolved component requires fallback, fallback applies to the entire group.
         - Successful fallback pronunciation determines context for the group to its left.
         """
-        w = list(group.tokens)
+        w = list(group)
         if len(w) == 1:
             tk = w[0]
             if tk.phonemes is None:
@@ -252,7 +262,7 @@ class G2P:
 
     def __call__(
         self, text: str, preprocess_fn: Optional[Preprocessor] = preprocess
-    ) -> Tuple[str, List[MToken]]:
+    ) -> G2PResult:
         text, tokens, features = (
             preprocess_fn(text) if preprocess_fn is not None else (text, [], {})
         )

@@ -1,8 +1,40 @@
 import re
 import warnings
-from typing import Tuple
 
 import cn2an
+
+from ..token import G2PResult
+
+_PUNCTUATION_TABLE = str.maketrans(
+    {
+        "、": ", ",
+        "，": ", ",
+        ",": ", ",
+        "。": ". ",
+        "．": ". ",
+        ".": ". ",
+        "！": "! ",
+        "!": "! ",
+        "：": ": ",
+        ":": ": ",
+        "；": "; ",
+        ";": "; ",
+        "？": "? ",
+        "?": "? ",
+        "«": " “",
+        "»": "” ",
+        "《": " “",
+        "》": "” ",
+        "「": " “",
+        "」": "” ",
+        "【": " “",
+        "】": "” ",
+        "（": " (",
+        "）": ") ",
+        "(": " (",
+        ")": ") ",
+    }
+)
 
 
 class ZHG2P:
@@ -17,20 +49,9 @@ class ZHG2P:
 
     @staticmethod
     def map_punctuation(text):
-        text = text.replace("、", ", ").replace("，", ", ")
-        text = text.replace("。", ". ").replace("．", ". ")
-        text = text.replace("！", "! ")
-        text = text.replace("：", ": ")
-        text = text.replace("；", "; ")
-        text = text.replace("？", "? ")
-        text = text.replace("«", " “").replace("»", "” ")
-        text = text.replace("《", " “").replace("》", "” ")
-        text = text.replace("「", " “").replace("」", "” ")
-        text = text.replace("【", " “").replace("】", "” ")
-        text = text.replace("（", " (").replace("）", ") ")
-        return text.strip()
+        return text.translate(_PUNCTUATION_TABLE).strip()
 
-    def __call__(self, text, en_callable=None) -> Tuple[str, None]:
+    def __call__(self, text, en_callable=None) -> G2PResult:
         if not text.strip():
             return "", None
         text = cn2an.transform(text, "an2cn")

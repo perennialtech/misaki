@@ -7,8 +7,7 @@ import regex
 import spacy
 
 from ..token import MToken, MTokenFeatures
-from ._lexicon import (CURRENCIES, PUNCT_TAG_PHONEMES, PUNCT_TAGS, PUNCTS,
-                       SPOKEN_SYMBOLS, is_digit)
+from ._lexicon import CURRENCIES, PUNCTS, SPOKEN_SYMBOLS, is_digit
 
 FeatureValue = Union[str, int, float]
 PreprocessorResult = Tuple[str, List[str], Dict[int, FeatureValue]]
@@ -20,14 +19,20 @@ SUBTOKEN_REGEX = regex.compile(
 )
 SUBTOKEN_JUNKS = frozenset("',-._‘’")
 
+PUNCT_TAGS = frozenset(
+    [".", ",", "-LRB-", "-RRB-", "``", '""', "''", ":", "$", "#", "NFP"]
+)
+PUNCT_TAG_PHONEMES = {
+    "-LRB-": "(",
+    "-RRB-": ")",
+    "``": chr(8220),
+    '""': chr(8221),
+    "''": chr(8221),
+}
+
 
 def subtokenize(word):
     return SUBTOKEN_REGEX.findall(word)
-
-
-@dataclass
-class TokenGroup:
-    tokens: Tuple[MToken, ...]
 
 
 @dataclass
@@ -108,7 +113,7 @@ def tokenize(nlp, text: str, tokens, features) -> List[MToken]:
     return mutable_tokens
 
 
-def retokenize(tokens: List[MToken]) -> List[TokenGroup]:
+def retokenize(tokens: List[MToken]) -> List[Tuple[MToken, ...]]:
     words = []
     currency = None
     for i, token in enumerate(tokens):
@@ -173,4 +178,4 @@ def retokenize(tokens: List[MToken]) -> List[TokenGroup]:
             else:
                 words.append(_MutableTokenGroup([tk], not tk.whitespace))
 
-    return [TokenGroup(tuple(w.group)) for w in words]
+    return [tuple(w.group) for w in words]
