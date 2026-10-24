@@ -11,15 +11,30 @@ from jamo import h2j
 
 from .numerals import convert_num
 from .regular import link1, link2, link4
-from .special import (balb, consonant_ui, jamo, josa_ui, jyeo, modifying_rieul,
-                      palatalize, rieulbieub, rieulgiyeok, verb_nieun)
+from .special import (
+    balb,
+    consonant_ui,
+    jamo,
+    josa_ui,
+    jyeo,
+    modifying_rieul,
+    palatalize,
+    rieulbieub,
+    rieulgiyeok,
+    verb_nieun,
+)
 from .utils import annotate, parse_table
 
 
 class G2p:
     def __init__(self):
         self.mecab = mecab.MeCab()
-        self.table = parse_table()
+        # Preserve rule order. The table's two-jamo patterns are literal;
+        # only the remaining end-of-word patterns need regular expressions.
+        self.table = [
+            (pattern if len(pattern) == 2 else re.compile(pattern), replacement)
+            for pattern, replacement in parse_table()
+        ]
         self.idiom_rules: list[tuple[re.Pattern, str]] = []
         with (importlib.resources.files(__package__) / "idioms.txt").open(
             "r", encoding="utf-8"
@@ -64,8 +79,11 @@ class G2p:
             inp = func(inp)
         inp = re.sub("/[PJEB]", "", inp)
 
-        for str1, str2 in self.table:
-            inp = re.sub(str1, str2, inp)
+        for pattern, replacement in self.table:
+            if isinstance(pattern, str):
+                inp = inp.replace(pattern, replacement)
+            else:
+                inp = pattern.sub(replacement, inp)
 
         for func in (link1, link2, link4):
             inp = func(inp)

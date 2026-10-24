@@ -46,6 +46,15 @@ _KOREAN_CANDIDATE = regex.compile(r"(?:\p{Script=Hangul}|\p{Nd})+")
 _KOREAN_EVIDENCE = regex.compile(r"\p{Script=Hangul}")
 _HAN_CANDIDATE = regex.compile(r"(?:\p{Script=Han}|\p{Nd})+")
 _HAN_EVIDENCE = regex.compile(r"\p{Script=Han}")
+# Only positions in these runs can start a non-English span. Skip the rest
+# without repeatedly trying the three anchored language patterns.
+_ROUTABLE_RUN = regex.compile(
+    r"(?:\p{Script=Han}|\p{Script=Hiragana}|\p{Script=Katakana}|"
+    r"\p{Script=Hangul}|\p{Nd}|[々〆ヶー・ヽヾゝゞ])+"
+)
+# Single-character punctuation is passed through unchanged by English G2P.
+# Larger punctuation groups are not necessarily invariant; they still need G2P.
+_PASSTHROUGH_PUNCTUATION = frozenset(".,!?:;—…()“”")
 
 _TARGET_VOWELS = frozenset("AIOWYæOᵻɑɔəɛɜɪʊʌᵊɐiu")
 _TARGET_CONSONANTS = US_DEFAULT_OR_LEGACY - _TARGET_VOWELS - frozenset("ˈˌ")
@@ -475,24 +484,27 @@ class MultilingualG2P:
 
     def _route_spans(self, text: str):
         text = normalize_multilingual_punctuation(text)
+        if text.isascii():
+            return [("en", text)] if text else []
+
         spans = []
         english_start = 0
-        position = 0
+        for run in _ROUTABLE_RUN.finditer(text):
+            position = run.start()
+            while position < run.end():
+                candidate = self._candidate_at(text, position)
+                if candidate is None:
+                    position += 1
+                    continue
 
-        while position < len(text):
-            candidate = self._candidate_at(text, position)
-            if candidate is None:
-                position += 1
-                continue
-
-            end, _, language = candidate
-            if english_start < position:
-                spans.append(("en", text[english_start:position]))
-            if language == "han":
-                language = self.default_han_language
-            spans.append((language, text[position:end]))
-            position = end
-            english_start = end
+                end, _, language = candidate
+                if english_start < position:
+                    spans.append(("en", text[english_start:position]))
+                if language == "han":
+                    language = self.default_han_language
+                spans.append((language, text[position:end]))
+                position = end
+                english_start = end
 
         if english_start < len(text):
             spans.append(("en", text[english_start:]))
@@ -502,6 +514,8 @@ class MultilingualG2P:
         start = len(text) - len(text.lstrip())
         end = len(text.rstrip())
         if start >= end:
+            return text
+        if end - start == 1 and text[start] in _PASSTHROUGH_PUNCTUATION:
             return text
         phonemes, _ = self.en(text[start:end])
         return text[:start] + phonemes + text[end:]
